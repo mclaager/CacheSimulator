@@ -367,3 +367,7 @@ FodyWeavers.xsd
 
 # Remove vscode related files
 .vscode/
+
+# Fix the mistake I made by including this vcxproj into the git repo
+/CacheSimulator.vcxproj
+/test/packages.config

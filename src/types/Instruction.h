@@ -6,6 +6,8 @@ typedef unsigned int Address;
 
 enum MemoryOperation
 {
+    None = -1,
+
     Read = 0,
     Write = 1
 };

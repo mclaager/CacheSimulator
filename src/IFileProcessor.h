@@ -14,9 +14,9 @@ public:
     IFileProcessor(const std::string &file) : file(file) { }
     
     // Reached the end of the file
-    bool Finished();
+    virtual bool Finished() = 0;
     // Grab the next instruction
-    Instruction Next();
+    virtual Instruction Next() = 0;
 };
 
 #endif

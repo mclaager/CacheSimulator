@@ -371,3 +371,6 @@ FodyWeavers.xsd
 # Fix the mistake I made by including this vcxproj into the git repo
 /CacheSimulator.vcxproj
 /test/packages.config
+src/a.out
+data/.DS_Store
+src/.DS_Store

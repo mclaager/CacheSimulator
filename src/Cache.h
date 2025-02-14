@@ -3,9 +3,11 @@
 
 #include "ICache.h"
 
-class Cache : ICache
+class Cache : public ICache
 {
 public:
+    int size, associativity, blockSize;
+
     Cache(int size, int associativity, int blockSize);
 
     bool ProcessRequest(Instruction instruction) override;

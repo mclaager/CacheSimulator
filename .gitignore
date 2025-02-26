@@ -374,3 +374,5 @@ FodyWeavers.xsd
 src/a.out
 data/.DS_Store
 src/.DS_Store
+src/MemoryHierarchy.cpp.save
+src/.FileProcessor.cpp.swp

@@ -8,7 +8,19 @@ MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModul
 	}
 }
 
+/// <summary>
+/// Processes the instruction on each level of the hierarchy.
+/// </summary>
+/// <returns>True if cache hit, otherwise False.</returns>
 bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 {
-	return true;
+	int i;
+	for (i = 0; i < cacheModules.size(); i++)
+	{
+		if(cacheModules[i].get()->ProcessRequest(instruction))
+		{
+			return true;
+		}
+	}
+	return false;
 }

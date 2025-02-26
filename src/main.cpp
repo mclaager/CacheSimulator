@@ -26,62 +26,54 @@ int main(int argc, char** argv)
 {
 	int blockSize,
 		l1_size, l1_assoc,
-		l2_size, l2_assoc,
-		replacementPolicy, isInclusive;
+		l2_size, l2_assoc, isInclusive;
 
-	std::string traceFile; 
-	
+	ReplacementPolicy replacementPolicy;
+
+	std::string traceFile;
+
 	if (argc < 8)
 	{
 		std::cerr << "Error: Not enough arguments." << std::endl;
 		return EXIT_FAILURE;
 	}
 
+	// Read in command line arguments
 	blockSize = atoi(argv[1]);
 	l1_size = atoi(argv[2]);
 	l1_assoc = atoi(argv[3]);
 	l2_size = atoi(argv[4]);
 	l2_assoc = atoi(argv[5]);
-	replacementPolicy = atoi(argv[6]);
+	replacementPolicy = (ReplacementPolicy) atoi(argv[6]);
 	isInclusive = atoi(argv[7]);
 	traceFile = argv[8];
-	
-	Cache cacheL1 = Cache(l1_size, l1_assoc, blockSize);
-	Cache cacheL2 = Cache(l2_size, l2_assoc, blockSize);
 
+	if (blockSize == 0 || l1_assoc == 0 || l2_assoc == 0)
+	{
+		std::cerr << "Error: Block size and associativity must not be zero." << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	// Initialize levels of the cache
+	Cache cacheL1 = Cache(l1_size, l1_assoc, blockSize, replacementPolicy);
+	Cache cacheL2 = Cache(l2_size, l2_assoc, blockSize, replacementPolicy);
+
+	// Create the memory hierarchy
 	std::vector<std::shared_ptr<ICache>> caches;
 	caches.push_back(std::make_shared<Cache>(cacheL1));
-	caches.push_back(std::make_shared<Cache>(cacheL2));
-
+	if (l2_size != 0)
+	{
+		caches.push_back(std::make_shared<Cache>(cacheL2));
+	}
 	MemoryHierarchy mh = MemoryHierarchy(caches);
 
-	std::cout << (dynamic_cast<Cache*>(mh.cacheModules[0].get()))->size << std::endl;
+	// Load the file
+	std::string fileloc = traceFile;
+	FileProcessor processor = FileProcessor(fileloc);
 
-    std::string fileloc = traceFile;
-    FileProcessor processor = FileProcessor(fileloc);
-
-    Instruction instruct = processor.Next();
-
-    std::cout << instruct.operation << std::endl;
-    std::cout << instruct.address << std::endl;
-
-    instruct = processor.Next();
-
-    std::cout << instruct.operation << std::endl;
-    std::cout << instruct.address << std::endl;
-
-    instruct = processor.Next();
-
-    std::cout << instruct.operation << std::endl;
-    std::cout << instruct.address << std::endl;
-
-    instruct = processor.Next();
-
-    std::cout << instruct.operation << std::endl;
-    std::cout << instruct.address << std::endl;
-
-    instruct = processor.Next();
-
-    std::cout << instruct.operation << std::endl;
-    std::cout << instruct.address << std::endl;
+	// Run the simulated cache
+	while (!processor.Finished())
+	{
+		mh.ProcessRequest(processor.Next());
+	}
 }

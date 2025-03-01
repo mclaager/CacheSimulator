@@ -8,6 +8,10 @@
 
 class Cache : public ICache
 {
+private:
+	void ProcessCacheHit(Instruction instruction);
+	void ProcessCacheMiss(Instruction instruction);
+
 public:
 	int size, associativity, blockSize;
 	int numSets;

@@ -17,6 +17,8 @@ private:
 	// Perform the write-back operation for a block of data in the cache, if applicable
 	void PerformWriteBack(unsigned int set, unsigned int associativityIdx, MemoryOperation operation);
 
+	unsigned int ToTag(Address address);
+
 public:
 	int size, associativity, blockSize;
 	int numSets;

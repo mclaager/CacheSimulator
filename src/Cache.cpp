@@ -108,7 +108,7 @@ void Cache::ProcessCacheMiss(Instruction instruction, unsigned int set)
 	Cache::replacementData[set][replacementIdx] = instruction.cyclesUntilReuse;
 
 	// Replaces the cache tag with new tag
-	Cache::tags[set][replacementIdx] = instruction.address / Cache::blockSize;
+	Cache::tags[set][replacementIdx] = Cache::ToTag(instruction.address);
 	Cache::occupiedBits[set][replacementIdx] = true;
 }
 
@@ -123,7 +123,7 @@ bool Cache::ProcessRequest(Instruction instruction)
 	for (i = 0; i < Cache::associativity; i++)
 	{
 		// Check if the current address block is hit
-		if (instruction.address / Cache::blockSize == Cache::tags[set][i])
+		if (Cache::ToTag(instruction.address) == Cache::tags[set][i])
 		{
 			isHit = true;
 			break;
@@ -166,6 +166,11 @@ bool Cache::ProcessRequest(Instruction instruction)
 unsigned int Cache::GetSet(Instruction instruction)
 {
 	return (instruction.address / Cache::blockSize) % Cache::numSets;
+}
+
+unsigned int Cache::ToTag(Address address)
+{
+	return address / (Cache::blockSize * Cache::numSets);
 }
 
 void Cache::PerformWriteBack(unsigned int set, unsigned int associativityIdx, MemoryOperation operation)

@@ -8,10 +8,6 @@ MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModul
 	}
 }
 
-/// <summary>
-/// Processes the instruction on each level of the hierarchy.
-/// </summary>
-/// <returns>True if cache hit, otherwise False.</returns>
 bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 {
 	int i;
@@ -23,4 +19,18 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 		}
 	}
 	return false;
+}
+
+
+std::string MemoryHierarchy::ToString()
+{
+	std::string str = "";
+
+	int i;
+	for (i = 0; i < cacheModules.size(); i++)
+	{
+		str.append(cacheModules[i].get()->ToString());
+	}
+
+	return str;
 }

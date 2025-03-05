@@ -21,7 +21,7 @@ Instruction FileProcessor::Next()
 {
     Instruction retrn;
     MemoryOperation op = None;
-    unsigned int address = 0;
+    Address address = 0;
 
     if (!stream.is_open())
     {
@@ -51,7 +51,7 @@ Instruction FileProcessor::Next()
     retrn = Instruction();
     retrn.address = address;
     retrn.operation = op;
-    retrn.cyclesUntilReuse = -1;
+    retrn.cyclesUntilReuse = REUSE_NOT_APPLICABLE;
 
     return retrn;
 }

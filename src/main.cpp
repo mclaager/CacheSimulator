@@ -4,9 +4,40 @@
 #include <memory>
 
 #include "FileProcessor.h"
+#include "OracleFileProcessor.h"
 #include "Cache.h"
 
 #include "MemoryHierarchy.h"
+
+void PrintSimulatorConfiguration(int blockSize,
+	int l1_size, int l1_assoc,
+	int l2_size, int l2_assoc,
+	ReplacementPolicy replacementPolicy,
+	bool isInclusive,
+	std::string traceFile)
+{
+	std::cout << "===== Simulator configuration =====" << std::endl;
+	std::cout << "BLOCKSIZE:             " << blockSize << std::endl;
+	std::cout << "L1_SIZE:               " << l1_size << std::endl;
+	std::cout << "L1_ASSOC:              " << l1_assoc << std::endl;
+	std::cout << "L2_SIZE:               " << l2_size << std::endl;
+	std::cout << "L2_ASSOC:              " << l2_assoc << std::endl;
+
+	std::string repl;
+	switch (replacementPolicy)
+	{
+		case ReplacementPolicy::FIFO: repl = "FIFO"; break;
+		case ReplacementPolicy::LRU: repl = "LRU"; break;
+		case ReplacementPolicy::OPTIMAL: repl = "optimal"; break;
+	}
+	std::cout << "REPLACEMENT POLICY:    " << repl << std::endl;
+
+	std::string inclusion = isInclusive ? "inclusive" : "non-inclusive";
+	std::cout << "INCLUSION PROPERTY:    " << inclusion << std::endl;
+
+	std::string base_filename = traceFile.substr(traceFile.find_last_of("/\\") + 1);
+	std::cout << "trace_file:            " << base_filename << std::endl;
+}
 
 /// <summary>
 /// The simulator accepts 8 Command Line args, the following are:
@@ -48,32 +79,50 @@ int main(int argc, char** argv)
 	isInclusive = atoi(argv[7]);
 	traceFile = argv[8];
 
-	if (blockSize == 0 || l1_assoc == 0 || l2_assoc == 0)
+	if (blockSize == 0 || l1_assoc == 0 || (l2_size > 0 && l2_assoc == 0))
 	{
 		std::cerr << "Error: Block size and associativity must not be zero." << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	// Initialize levels of the cache
-	Cache cacheL1 = Cache(l1_size, l1_assoc, blockSize, replacementPolicy);
-	Cache cacheL2 = Cache(l2_size, l2_assoc, blockSize, replacementPolicy);
+	PrintSimulatorConfiguration(blockSize,
+		l1_size, l1_assoc,
+		l2_size, l2_assoc,
+		replacementPolicy,
+		isInclusive,
+		traceFile);
 
 	// Create the memory hierarchy
 	std::vector<std::shared_ptr<ICache>> caches;
-	caches.push_back(std::make_shared<Cache>(cacheL1));
+	caches.push_back(std::make_shared<Cache>(Cache(l1_size, l1_assoc, blockSize, replacementPolicy, "L1")));
 	if (l2_size != 0)
 	{
-		caches.push_back(std::make_shared<Cache>(cacheL2));
+		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, "L2")));
 	}
 	MemoryHierarchy mh = MemoryHierarchy(caches);
 
-	// Load the file
-	std::string fileloc = traceFile;
-	FileProcessor processor = FileProcessor(fileloc);
-
-	// Run the simulated cache
-	while (!processor.Finished())
+	// Load the file and run the simulated cache
+	Instruction next;
+	if (replacementPolicy == ReplacementPolicy::OPTIMAL)
 	{
-		mh.ProcessRequest(processor.Next());
+		OracleFileProcessor oracleProcessor = OracleFileProcessor(traceFile);
+		while (!oracleProcessor.Finished())
+		{
+			next = oracleProcessor.Next();
+			if (next.operation != MemoryOperation::None)
+				mh.ProcessRequest(next);
+		}
 	}
+	else
+	{
+		FileProcessor processor = FileProcessor(traceFile);
+		while (!processor.Finished())
+		{
+			next = processor.Next();
+			if (next.operation != MemoryOperation::None)
+				mh.ProcessRequest(next);
+		}
+	}
+
+	std::cout << mh.ToString();
 }

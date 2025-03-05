@@ -372,6 +372,7 @@ FodyWeavers.xsd
 /CacheSimulator.vcxproj
 /test/packages.config
 src/a.out
+src/sim_cache
 data/.DS_Store
 src/.DS_Store
 src/MemoryHierarchy.cpp.save

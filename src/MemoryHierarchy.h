@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 
 #include "types/MemoryHierarchyStatistics.h"
 #include "ICache.h"
@@ -15,6 +16,9 @@ public:
 
     MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules);
 
+    std::string ToString();
+
+    // Processes the instruction on each level of the hierarchy. Returns true if cache hit, otherwise false.
     bool ProcessRequest(Instruction instruction);
 };
 

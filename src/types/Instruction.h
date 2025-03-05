@@ -1,8 +1,12 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
 
+#define NEVER_REUSED __UINT32_MAX__
+#define REUSE_NOT_APPLICABLE NEVER_REUSED
+
 // int == 32 bit
 typedef unsigned int Address;
+
 
 enum MemoryOperation
 {
@@ -18,7 +22,7 @@ struct Instruction
     MemoryOperation operation;
 
     // The amount of cycles until this operation is used again, if known
-    int cyclesUntilReuse;
+    unsigned int cyclesUntilReuse;
 };
 
 #endif

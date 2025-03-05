@@ -7,7 +7,7 @@
 #include "IFileProcessor.h"
 #include "types/Instruction.h"
 
-class FileProcessor : IFileProcessor
+class FileProcessor : public IFileProcessor
 {
 private:
     std::ifstream stream;

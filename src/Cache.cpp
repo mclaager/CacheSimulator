@@ -88,13 +88,14 @@ void Cache::ProcessCacheMiss(Instruction instruction, unsigned int set)
 				break;
 			case ReplacementPolicy::OPTIMAL:
 				// Gets the index of the farthest away used address
-				int farthestBlockValue = -1;
+				int farthestBlockValue = 0;
 				for (i = 0; i < Cache::associativity; i++)
 				{
-					if (Cache::replacementData[set][i] >= farthestBlockValue)
+					if (Cache::replacementData[set][i] > farthestBlockValue)
 					{
 						replacementIdx = i;
 						farthestBlockValue = Cache::replacementData[set][i];
+						// Early break (always replace first block that's never reused)
 						if (farthestBlockValue == NEVER_REUSED)
 							break;
 					}

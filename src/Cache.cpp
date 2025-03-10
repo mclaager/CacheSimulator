@@ -19,6 +19,12 @@ Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy repla
 
 	switch (Cache::replacement)
 	{
+		case ReplacementPolicy::LRU:
+			Cache::replacementData.resize(numSets, std::vector<unsigned int>(associativity, 0));
+			break;
+		case ReplacementPolicy::FIFO:
+			Cache::replacementData.resize(numSets, std::vector<unsigned int>(1, 0));
+			break;
 		case ReplacementPolicy::OPTIMAL:
 			Cache::replacementData.resize(numSets, std::vector<unsigned int>(associativity, NEVER_REUSED));
 			break;
@@ -35,7 +41,6 @@ void Cache::ProcessCacheHit(Instruction instruction, unsigned int set, unsigned 
 	switch (Cache::replacement)
 	{
 		case ReplacementPolicy::FIFO:
-			// TODO: Implement FIFO Replacement Policy for Cache Hit
 			break;
 		case ReplacementPolicy::LRU:
 			// TODO: Implement LRU Replacement Policy for Cache Hit
@@ -76,12 +81,13 @@ void Cache::ProcessCacheMiss(Instruction instruction, unsigned int set)
 	}
 
 	// If not, perform a replacement policy
-	if (replacementIdx == 0)
+	if (!Cache::occupiedBits[set][i])
 	{
 		switch (Cache::replacement)
 		{
 			case ReplacementPolicy::FIFO:
-				// TODO: Implement FIFO Replacement Policy for Cache Miss
+				replacementIdx = replacementData[set][0];
+				replacementData[set][0] = (replacementData[set][0] + 1) % Cache::associativity;
 				break;
 			case ReplacementPolicy::LRU:
 				// TODO: Implement LRU Replacement Policy for Cache Miss
@@ -100,13 +106,12 @@ void Cache::ProcessCacheMiss(Instruction instruction, unsigned int set)
 							break;
 					}
 				}
+				Cache::replacementData[set][replacementIdx] = instruction.cyclesUntilReuse;
 				break;
 		}	
 	}
 
 	PerformWriteBack(set, replacementIdx, instruction.operation);
-			
-	Cache::replacementData[set][replacementIdx] = instruction.cyclesUntilReuse;
 
 	// Replaces the cache tag with new tag
 	Cache::tags[set][replacementIdx] = Cache::ToTag(instruction.address);

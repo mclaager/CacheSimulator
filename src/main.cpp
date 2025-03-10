@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 	{
 		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, "L2")));
 	}
-	MemoryHierarchy mh = MemoryHierarchy(caches);
+	MemoryHierarchy mh = MemoryHierarchy(caches, isInclusive == 1);
 
 	// Load the file and run the simulated cache
 	Instruction next;

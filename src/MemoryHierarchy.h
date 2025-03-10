@@ -13,8 +13,9 @@ class MemoryHierarchy
 public:
     MemoryHierarchyStatistics statistics;
     std::vector<std::shared_ptr<ICache>> cacheModules;
+    bool isInclusive;
 
-    MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules);
+    MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive);
 
     std::string ToString();
 

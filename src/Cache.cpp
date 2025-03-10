@@ -83,9 +83,15 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 			break;
 		}
 	}
+	// range check
+	if (i >= Cache::associativity)
+	{
+		i = Cache::associativity - 1;
+	}
 
+	unsigned int farthestBlockValue;
 	// If not, perform a replacement policy
-	if (!Cache::memory[set][i].isOccupied)
+	if (Cache::memory[set][i].isOccupied)
 	{
 		switch (Cache::replacement)
 		{
@@ -98,7 +104,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 				break;
 			case ReplacementPolicy::OPTIMAL:
 				// Gets the index of the farthest away used address
-				unsigned int farthestBlockValue = 0;
+				farthestBlockValue = 0;
 				for (i = 0; i < Cache::associativity; i++)
 				{
 					if (Cache::replacementData[set][i] > farthestBlockValue)
@@ -127,7 +133,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 
 	CacheRequestOutput output =
 	{
-		.status = isReplacingAddress ? CacheMissNoEviction : CacheMissEviction,
+		.status = isReplacingAddress ? CacheMissEviction : CacheMissNoEviction,
 		.address = originalAddress
 	};
 	return output;
@@ -155,11 +161,11 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 		Cache::ProcessCacheHit(instruction, set, i) :
 		Cache::ProcessCacheMiss(instruction, set);
 
+	unsigned int associativityIdx;
 	// Post-process for replacement policies
 	switch (Cache::replacement)
 	{
 		case ReplacementPolicy::OPTIMAL:
-			unsigned int set;
 			for (set = 0; set < Cache::numSets; set++)
 			{
 				// std::cout << "Data: ";
@@ -168,7 +174,6 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 				// 	std::cout << Cache::replacementData[set][i] << " ";
 				// }
 				// std::cout << std::endl;
-				unsigned int associativityIdx;
 				for (associativityIdx = 0; associativityIdx < Cache::associativity; associativityIdx++)
 				{
 					if (Cache::replacementData[set][associativityIdx] != NEVER_REUSED)
@@ -250,6 +255,13 @@ void Cache::Evict(Address address)
 		{
 			// Reset line of cache memory
 			Cache::memory[set][i] = CacheLine();
+			// Reset Replacement Block data
+			switch (Cache::replacement)
+			{
+				case ReplacementPolicy::FIFO:
+					Cache::replacementData[set][i] = 0;
+					break;
+			}
 			return;
 		}
 	}

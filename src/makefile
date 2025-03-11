@@ -5,7 +5,7 @@ CC = g++
 TARGET = sim_cache
 
 # Source Code
-SOURCE = main.cpp FileProcessor.cpp Cache.cpp MemoryHierarchy.cpp OracleFileProcessor.cpp
+SOURCE = main.cpp FileProcessor.cpp Cache.cpp MemoryHierarchy.cpp OracleFileProcessor.cpp AddressChunkCache.cpp
 # Builds the executable
 $(TARGET) : $(SOURCE)
 	$(CC) -o $(TARGET) $(SOURCE)

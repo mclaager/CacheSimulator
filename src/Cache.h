@@ -33,10 +33,10 @@ public:
 
 	Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, std::string name);
 
-	CacheRequestOutput ProcessRequest(Instruction instruction) override;
-	void Evict(Address address) override;
+	virtual CacheRequestOutput ProcessRequest(Instruction instruction) override;
+	virtual void Evict(Address address) override;
 
-	std::string ToString() override;
+	virtual std::string ToString() override;
 };
 
 #endif

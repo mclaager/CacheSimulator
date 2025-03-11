@@ -6,6 +6,7 @@
 #include "FileProcessor.h"
 #include "OracleFileProcessor.h"
 #include "Cache.h"
+#include "AddressChunkCache.h"
 
 #include "MemoryHierarchy.h"
 
@@ -57,7 +58,8 @@ int main(int argc, char** argv)
 {
 	int blockSize,
 		l1_size, l1_assoc,
-		l2_size, l2_assoc, isInclusive;
+		l2_size, l2_assoc, isInclusive,
+		n, m;
 
 	ReplacementPolicy replacementPolicy;
 
@@ -78,6 +80,8 @@ int main(int argc, char** argv)
 	replacementPolicy = (ReplacementPolicy) atoi(argv[6]);
 	isInclusive = atoi(argv[7]);
 	traceFile = argv[8];
+	n = atoi(argv[9]);
+	m = atoi(argv[10]);
 
 	if (blockSize == 0 || l1_assoc == 0 || (l2_size > 0 && l2_assoc == 0))
 	{
@@ -97,7 +101,8 @@ int main(int argc, char** argv)
 	caches.push_back(std::make_shared<Cache>(Cache(l1_size, l1_assoc, blockSize, replacementPolicy, "L1")));
 	if (l2_size != 0)
 	{
-		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, "L2")));
+		//caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, "L2")));
+		caches.push_back(std::make_shared<AddressChunkCache>(AddressChunkCache(l2_size, l2_assoc, blockSize, n, m, replacementPolicy, "L2")));
 	}
 	MemoryHierarchy mh = MemoryHierarchy(caches, isInclusive == 1);
 
@@ -125,4 +130,7 @@ int main(int argc, char** argv)
 	}
 
 	std::cout << mh.ToString();
+
+	std::cout << "Read Misses L2: " << mh.cacheModules[1].get()->statistics.readMisses << std::endl;
+	std::cout << "Write Misses L2: " << mh.cacheModules[1].get()->statistics.writeMisses << std::endl;
 }

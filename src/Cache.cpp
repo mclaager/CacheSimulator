@@ -39,9 +39,7 @@ CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, unsigned int 
 	switch (Cache::replacement)
 	{
 		case ReplacementPolicy::FIFO:
-			break;
 		case ReplacementPolicy::LRU:
-			// TODO: Implement LRU Replacement Policy for Cache Hit
 			break;
 		case ReplacementPolicy::OPTIMAL:
 			Cache::replacementData[set][associativityIdx] = instruction.cyclesUntilReuse;
@@ -89,7 +87,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 		i = Cache::associativity - 1;
 	}
 
-	unsigned int farthestBlockValue;
+	unsigned int maxCyclesLastUsed, farthestBlockValue;
 	// If not, perform a replacement policy
 	if (Cache::memory[set][i].isOccupied)
 	{
@@ -100,7 +98,15 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 				replacementData[set][0] = (replacementData[set][0] + 1) % Cache::associativity;
 				break;
 			case ReplacementPolicy::LRU:
-				// TODO: Implement LRU Replacement Policy for Cache Miss
+				maxCyclesLastUsed = 0;
+				for (i = 0; i < Cache::associativity; i++)
+				{
+					if (Cache::replacementData[set][i] > maxCyclesLastUsed)
+					{
+						replacementIdx = i;
+						maxCyclesLastUsed = Cache::replacementData[set][i];
+					}
+				}
 				break;
 			case ReplacementPolicy::OPTIMAL:
 				// Gets the index of the farthest away used address
@@ -165,6 +171,18 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 	// Post-process for replacement policies
 	switch (Cache::replacement)
 	{
+		case ReplacementPolicy::LRU:
+			for (associativityIdx = 0; associativityIdx < Cache::associativity; associativityIdx++)
+			{
+				if (!Cache::memory[set][associativityIdx].isOccupied)
+					continue;
+				
+				if (Cache::memory[set][associativityIdx].tag == Cache::ToTag(instruction.address))
+					Cache::replacementData[set][associativityIdx] = 0;
+				else
+					Cache::replacementData[set][associativityIdx]++;
+			}
+			break;
 		case ReplacementPolicy::OPTIMAL:
 			for (set = 0; set < Cache::numSets; set++)
 			{
@@ -259,6 +277,7 @@ void Cache::Evict(Address address)
 			switch (Cache::replacement)
 			{
 				case ReplacementPolicy::FIFO:
+				case ReplacementPolicy::LRU:
 					Cache::replacementData[set][i] = 0;
 					break;
 			}

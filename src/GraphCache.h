@@ -5,58 +5,69 @@
 #include "types/CacheLine.h"
 
 #include <vector>
+#include <memory>
 #include <map>
-#include <sstream>
+#include <unordered_map>
+#include <list>
+#include <iostream>
+#include <algorithm>
 
-class GraphNode
+
+class Edge;
+class Node;
+class GraphLimitingQueue;
+
+class Node
 {
 public:
-    bool isDirty;
+    int address;
+    std::vector<std::shared_ptr<Edge>> edges; // Adjacency list
+
+    Node(int addr);
+    void AddEdge(std::shared_ptr<Edge> edge);
+};
+
+class Edge
+{
+public:
+    int weight;
+    std::shared_ptr<Node> from;
+    std::shared_ptr<Node> to;
+
+    Edge(int _weight, std::shared_ptr<Node> _from, std::shared_ptr<Node> _to);
 };
 
 class Graph
 {
-public:
-    std::map<Tag, GraphNode> nodes;
+    std::map<int, std::shared_ptr<Node>> nodes; // Node storage
 
-    std::string ToString()
-    {
-        std::string output = "";
-        std::stringstream ss;
-        for (auto kvp : nodes)
-        {
-            ss << "[";
-        }
-    };
+public:
+    GraphLimitingQueue& graphQueue;  // Reference to the queue
+
+    Graph(GraphLimitingQueue& queue);  // Constructor declaration
+
+    void AddNode(int address);
+    void RemoveNode(int address);
+
+    void HandleCorrectPrediction(int lastAddress, int thisAddress);
+    void HandleIncorrectPrediction(int lastAddress, int incorrectAddress);
+    int PrefetchAddress(int currentAddress);
 };
 
-class GraphCache : public ICache
+class GraphLimitingQueue
 {
 private:
-	CacheRequestOutput ProcessCacheHit(Instruction instruction, unsigned int set, unsigned int associativityIdx);
-	CacheRequestOutput ProcessCacheMiss(Instruction instruction, unsigned int set);
-
-	// Get the cache set for an address
-	unsigned int GetSet(Address address);
-	// Perform the write-back operation for a block of data in the cache, if applicable
-	// void PerformWriteBack(unsigned int set, unsigned int associativityIdx, MemoryOperation operation);
-
-	Tag ToTag(Address address);
+    int maxSize;
+    std::list<Node*> queue;
+    std::unordered_map<int, std::list<Node*>::iterator> nodeMap;
 
 public:
-	unsigned int maxSize, numSets, blockSize;
-    unsigned int currentSize;
-	int numSets;
-
-	// A container that holds the cache line data for each entry
-	std::vector<Graph> memory;
-
-	GraphCache(std::string name, unsigned int associativity, unsigned int blockSize, unsigned int maxSize = __UINT32_MAX__);
-
-	CacheRequestOutput ProcessRequest(Instruction instruction) override;
-	void Evict(Address address) override;
-
-	std::string ToString() override;
+    GraphLimitingQueue(int size);
+    
+    void Add(Node* node);
+    void Promote(int address);
+    void Remove(int address);
+    Node* GetNode(int currentAddress);
 };
 
-#endif
+#endif // GRAPHCACHE_H

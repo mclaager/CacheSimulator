@@ -6,12 +6,14 @@
 #include "types/CacheRequestOutput.h"
 
 #include <string>
+#include <cstdint>
 
 class ICache
 {
 public:
     CacheStatistics statistics;
     std::string name;
+    unsigned int correctPredictions;
 
     // Process a read/write request from previous stage (CPU, L1, etc.)
     virtual CacheRequestOutput ProcessRequest(Instruction instruction) = 0;

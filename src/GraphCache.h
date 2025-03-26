@@ -68,8 +68,10 @@ public:
     void Add(Node* node);
     void Promote(Address address);
     void Remove(Address address);
+	void PrintQueue();
     Node* GetNode(Address currentAddress);
     Node* GetTail();
+	std::shared_ptr<Node> GetHead();
 };
 
 #endif // GRAPHCACHE_H

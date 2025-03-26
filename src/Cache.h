@@ -29,6 +29,7 @@ public:
 
 	int size, associativity, blockSize;
 	int numSets;
+	//u_int32_t correctPredictions;
 
 	ReplacementPolicy replacement;
 

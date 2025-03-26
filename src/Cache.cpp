@@ -16,6 +16,7 @@ Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy repla
 	Cache::numSets = size / (associativity * blockSize);
 
 	Cache::memory.resize(numSets, std::vector<CacheLine>(associativity));
+	ICache::correctPredictions = 0;
 
 	switch (Cache::replacement)
 	{
@@ -143,6 +144,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 
 CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 {
+	// Try to add the currently accessed address
 	prefetchGraph.AddNode(instruction.address);
 
 	// Determine the set the instruction belongs to
@@ -152,11 +154,23 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 	
 	if (Cache::didFetch)
 	{
+		
 		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
 		if (Cache::previousFetch == instruction.address)
-			prefetchGraph.HandleCorrectPrediction(Cache::lastAddress, instruction.address);
+		{
+			
+			ICache::correctPredictions++;
+			std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
+			//std::cout<<"predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+			prefetchGraph.HandleCorrectPrediction(Cache::lastAddress, Cache::previousFetch);
+		}
 		else
-			prefetchGraph.HandleIncorrectPrediction(Cache::lastAddress, instruction.address);
+		{
+			//if(ICache::correctPredictions>13158)
+				std::cout<<"given: "<<std::hex<<Cache::lastAddress<<" incorrect predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+			//std::cout<<"calling Handle incorrect prediction"<<std::endl;
+			prefetchGraph.HandleIncorrectPrediction(Cache::lastAddress, Cache::previousFetch);
+		}
 	}
 
 	Address fetchedAddress = prefetchGraph.PrefetchAddress(instruction.address);

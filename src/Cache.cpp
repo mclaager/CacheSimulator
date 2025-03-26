@@ -1,13 +1,15 @@
 #include "Cache.h"
 
+
+
 #include <iomanip>
 #include <sstream>
 
 #include <iostream>
 
-Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, std::string name)
+Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, GraphLimitingQueue* queue, std::string name)
 	: size(size), associativity(associativity), blockSize(blockSize),
-	replacement(replacement)
+	replacement(replacement), prefetchGraph(queue)
 {
 	Cache::name = name;
 
@@ -141,10 +143,29 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 
 CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 {
+	prefetchGraph.AddNode(instruction.address);
+
 	// Determine the set the instruction belongs to
 	unsigned int set = GetSet(instruction.address);
 
 	bool isHit = false;
+	
+	if (Cache::didFetch)
+	{
+		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
+		if (Cache::previousFetch == instruction.address)
+			prefetchGraph.HandleCorrectPrediction(Cache::lastAddress, instruction.address);
+		else
+			prefetchGraph.HandleIncorrectPrediction(Cache::lastAddress, instruction.address);
+	}
+
+	Address fetchedAddress = prefetchGraph.PrefetchAddress(instruction.address);
+	Cache::didFetch = fetchedAddress != __UINT32_MAX__;
+	if (Cache::didFetch)
+	{
+		Cache::previousFetch = fetchedAddress;
+		Cache::lastAddress = instruction.address;
+	}
 
 	int i;
 	for (i = 0; i < Cache::associativity; i++)
@@ -156,6 +177,7 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 			break;
 		}
 	}
+	
 
 	CacheRequestOutput output = isHit ?
 		Cache::ProcessCacheHit(instruction, set, i) :

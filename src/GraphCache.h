@@ -20,10 +20,10 @@ class GraphLimitingQueue;
 class Node
 {
 public:
-    int address;
+Address address;
     std::vector<std::shared_ptr<Edge>> edges; // Adjacency list
 
-    Node(int addr);
+    Node(Address addr);
     void AddEdge(std::shared_ptr<Edge> edge);
 };
 
@@ -39,35 +39,37 @@ public:
 
 class Graph
 {
-    std::map<int, std::shared_ptr<Node>> nodes; // Node storage
+    std::map<Address, std::shared_ptr<Node>> nodes; // Node storage
 
 public:
-    GraphLimitingQueue& graphQueue;  // Reference to the queue
+    GraphLimitingQueue* graphQueue;  // Reference to the queue
 
-    Graph(GraphLimitingQueue& queue);  // Constructor declaration
+    Graph(GraphLimitingQueue* queue);  // Constructor declaration
 
-    void AddNode(int address);
-    void RemoveNode(int address);
+    void AddNode(Address address);
+    void RemoveNode(Address address);
 
-    void HandleCorrectPrediction(int lastAddress, int thisAddress);
-    void HandleIncorrectPrediction(int lastAddress, int incorrectAddress);
-    int PrefetchAddress(int currentAddress);
+    void HandleCorrectPrediction(Address lastAddress, Address thisAddress);
+    void HandleIncorrectPrediction(Address lastAddress, Address incorrectAddress);
+    Address PrefetchAddress(Address currentAddress);
 };
 
 class GraphLimitingQueue
 {
 private:
-    int maxSize;
     std::list<Node*> queue;
-    std::unordered_map<int, std::list<Node*>::iterator> nodeMap;
+    std::unordered_map<Address, std::list<Node*>::iterator> nodeMap;
 
 public:
+    int maxSize;
     GraphLimitingQueue(int size);
     
+    unsigned int GetCurrentSize();
     void Add(Node* node);
-    void Promote(int address);
-    void Remove(int address);
-    Node* GetNode(int currentAddress);
+    void Promote(Address address);
+    void Remove(Address address);
+    Node* GetNode(Address currentAddress);
+    Node* GetTail();
 };
 
 #endif // GRAPHCACHE_H

@@ -5,6 +5,8 @@
 #include "types/ReplPolicies.h"
 #include "types/CacheLine.h"
 
+#include "GraphCache.h"
+
 #include <vector>
 
 class Cache : public ICache
@@ -21,6 +23,10 @@ private:
 	Tag ToTag(Address address);
 
 public:
+	Graph prefetchGraph;
+	bool didFetch;
+	Address lastAddress, previousFetch;
+
 	int size, associativity, blockSize;
 	int numSets;
 
@@ -31,7 +37,7 @@ public:
 	// A container for replacement policies to store arbitrary data for each address
 	std::vector<std::vector<unsigned int>> replacementData;
 
-	Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, std::string name);
+	Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, GraphLimitingQueue* queue, std::string name);
 
 	CacheRequestOutput ProcessRequest(Instruction instruction) override;
 	void Evict(Address address) override;

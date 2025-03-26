@@ -3,7 +3,7 @@
 
 
 
-Node::Node(int addr) : address(addr) {}
+Node::Node(Address addr) : address(addr) {}
 void Node::AddEdge(std::shared_ptr<Edge> edge)
 {
     edges.push_back(edge);
@@ -11,17 +11,18 @@ void Node::AddEdge(std::shared_ptr<Edge> edge)
 
 Edge::Edge(int _weight, std::shared_ptr<Node> _from, std::shared_ptr<Node> _to) : weight(_weight), from(_from), to(_to) {}
 
-Graph::Graph(GraphLimitingQueue& queue) : graphQueue(queue) {}
-void Graph::AddNode(int address)
+Graph::Graph(GraphLimitingQueue* queue) : graphQueue(queue) {}
+void Graph::AddNode(Address address)
 {
     // First, add the node to the graph
     if (nodes.find(address) == nodes.end()) {
+        std::cout << "Adding " << std::hex <<  address << std::dec << std::endl;
         // Create a new node and insert it into the graph
         std::shared_ptr<Node> newNode = std::make_shared<Node>(address);
         nodes[address] = newNode;
 
         // Also add the node to the queue (LRU mechanism)
-        graphQueue.Add(newNode.get());
+        graphQueue->Add(newNode.get());
 
         // If this is not the first node, add an edge to the previous node
         if (nodes.size() > 1) {
@@ -36,13 +37,33 @@ void Graph::AddNode(int address)
             prevNode->AddEdge(newEdge);
             newNode->AddEdge(newEdge);
         }
+
+        if (graphQueue->GetCurrentSize() >= graphQueue->maxSize)
+        {
+            Node* tail = graphQueue->GetTail();
+            if (tail != nullptr)
+            {
+                graphQueue->Remove(tail->address);
+                nodes.erase(tail->address);
+            }
+        }
     }
+    else
+    {
+        std::cout << "Promoting " << std::hex <<  address << std::dec << std::endl;
+        graphQueue->Promote(address);
+    }
+}
+
+void Graph::RemoveNode(Address address)
+{
+    Graph::nodes.erase(address);
 }
 
 
 GraphLimitingQueue::GraphLimitingQueue(int size) : maxSize(size) {}
 
-void Graph::HandleCorrectPrediction(int lastAddress, int thisAddress)
+void Graph::HandleCorrectPrediction(Address lastAddress, Address thisAddress)
 {
     auto it = nodes.find(lastAddress);
     if (it != nodes.end()) // Ensure lastAddress node exists
@@ -67,7 +88,7 @@ void Graph::HandleCorrectPrediction(int lastAddress, int thisAddress)
     }
 }
 
-void Graph::HandleIncorrectPrediction(int lastAddress, int incorrectAddress)
+void Graph::HandleIncorrectPrediction(Address lastAddress, Address incorrectAddress)
 {
     auto lastIt = nodes.find(lastAddress);
     auto incorrectIt = nodes.find(incorrectAddress);
@@ -106,9 +127,9 @@ void Graph::HandleIncorrectPrediction(int lastAddress, int incorrectAddress)
     }
 }
 
-int Graph::PrefetchAddress(int currentAddress)
+Address Graph::PrefetchAddress(Address currentAddress)
 {
-    Node* currentNode = graphQueue.GetNode(currentAddress);
+    Node* currentNode = graphQueue->GetNode(currentAddress);
     if (!currentNode || currentNode->edges.empty()) {
         return -1; // Indicate no prefetch candidate exists
     }
@@ -137,20 +158,17 @@ void GraphLimitingQueue::Add(Node* node)
     }
     else
     {
-        if (queue.size() >= maxSize)
-        {
-            Node* tailNode = queue.back();
-            nodeMap.erase(tailNode->address);
-            queue.pop_back();
-        }
-
         queue.push_front(node);
         nodeMap[node->address] = queue.begin();
     }
 }
 
-void GraphLimitingQueue::Promote(int address)
+void GraphLimitingQueue::Promote(Address address)
 {
+    for (auto kvp : nodeMap)
+    {
+        std::cout << std::hex << kvp.first << std::dec << std::endl;
+    }
     if (nodeMap.find(address) == nodeMap.end())
     {
         throw std::out_of_range("Node to promote not found in queue");
@@ -160,7 +178,7 @@ void GraphLimitingQueue::Promote(int address)
     queue.splice(queue.begin(), queue, it);
 }
 
-void GraphLimitingQueue::Remove(int address)
+void GraphLimitingQueue::Remove(Address address)
 {
     if (nodeMap.find(address) == nodeMap.end())
     {
@@ -172,13 +190,24 @@ void GraphLimitingQueue::Remove(int address)
     nodeMap.erase(address);
 }
 
-Node* GraphLimitingQueue::GetNode(int currentAddress)
+unsigned int GraphLimitingQueue::GetCurrentSize()
+{
+    return queue.size();
+}
+
+Node* GraphLimitingQueue::GetNode(Address currentAddress)
 {
     if (nodeMap.find(currentAddress) == nodeMap.end()) {
         throw std::out_of_range("Node to get not found");
     }
 
     auto it = nodeMap[currentAddress];
+
     return *it; // Correctly return the Node pointer
+}
+
+Node* GraphLimitingQueue::GetTail()
+{
+    return queue.back();
 }
 

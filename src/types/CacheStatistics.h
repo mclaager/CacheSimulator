@@ -12,6 +12,8 @@ struct CacheStatistics
     // Cache miss rate = (readMisses + writeMisses) / (reads + writes)
 
     unsigned int writeBacks = 0;
+
+    unsigned int writePropagations = 0;
 };
 
 #endif

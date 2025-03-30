@@ -139,6 +139,9 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 	// Update the dirty bit to the appropriate state
 	Cache::memory[set][replacementIdx].isDirty = instruction.operation == MemoryOperation::Write;
 
+	if (isReplacingAddress && Cache::isInclusive && prev)
+		prev->Evict(originalAddress);
+
 	CacheRequestOutput output =
 	{
 		.status = isReplacingAddress ? CacheMissEviction : CacheMissNoEviction,
@@ -279,8 +282,15 @@ std::string Cache::StatisticsOutput(char startingLineIdentifier = 'a')
 	ss << currentLineIdentifier++ << ". number of " << Cache::name << " writes:       " << Cache::statistics.writes << std::endl;
 	ss << currentLineIdentifier++ << ". number of " << Cache::name << " write misses: " << Cache::statistics.writeMisses << std::endl;
 
-	double missRate = (double)(Cache::statistics.readMisses + Cache::statistics.writeMisses) / (double)(Cache::statistics.reads + Cache::statistics.writes);
-	ss << currentLineIdentifier++ << ". " << Cache::name << " miss rate:              " << missRate << std::endl;
+	double missRate;
+	// miss rates that stall the CPU
+	if (!prev || next)
+		missRate = (double)(Cache::statistics.readMisses + Cache::statistics.writeMisses) / (double)(Cache::statistics.reads + Cache::statistics.writes);
+	// Miss rate for the lowest cache level
+	else
+		missRate = (double)(Cache::statistics.readMisses) / (double)(Cache::statistics.reads);
+	
+	ss << currentLineIdentifier++ << ". " << Cache::name << " miss rate:              " << std::fixed << std::setprecision(6) << missRate << std::endl;
 
 	ss << currentLineIdentifier++ << ". number of " << Cache::name << " writebacks:   " << Cache::statistics.writeBacks << std::endl;
 
@@ -302,6 +312,10 @@ void Cache::Evict(Address address)
 		// Check if the current address block is hit
 		if (Cache::ToTag(address) == Cache::memory[set][i].tag)
 		{
+			// Propogate dirty bits to main memory
+			if (Cache::memory[set][i].isDirty && next)
+				next->PropagateWriteToMainMemory();
+
 			// Reset line of cache memory
 			Cache::memory[set][i] = CacheLine();
 			// Reset Replacement Block data
@@ -312,6 +326,11 @@ void Cache::Evict(Address address)
 					Cache::replacementData[set][i] = 0;
 					break;
 			}
+			
+			// Cascade evictions to upper levels of cache for inclusive policy
+			if (Cache::isInclusive && prev)
+				prev->Evict(address);
+
 			return;
 		}
 	}
@@ -319,4 +338,14 @@ void Cache::Evict(Address address)
 	// For evicting address in higher levels of cache for inclusive memory hierarchies,
 	// this return should not be reachable. 
 	return;
+}
+
+void Cache::PropagateWriteToMainMemory()
+{
+	// Update statistics
+	Cache::statistics.writePropagations++;
+
+	// Continue propogation
+	if (next)
+		next->PropagateWriteToMainMemory();
 }

@@ -37,6 +37,8 @@ public:
 	CacheRequestOutput ProcessRequest(Instruction instruction) override;
 	void Evict(Address address) override;
 
+	void PropagateWriteToMainMemory() override;
+
 	std::string ToString() override;
 	std::string StatisticsOutput(char startingLineIdentifier) override;
 };

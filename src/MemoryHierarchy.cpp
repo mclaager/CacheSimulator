@@ -8,9 +8,13 @@ MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModul
 {
 	for (int i = 0; i < cacheModules.size(); i++)
 	{
+		cacheModules[i]->isInclusive = isInclusive;
 		MemoryHierarchy::cacheModules.push_back(cacheModules[i]);
 		if (i > 0)
+		{
 			MemoryHierarchy::cacheModules[i-1]->next = MemoryHierarchy::cacheModules[i];
+			MemoryHierarchy::cacheModules[i]->prev = MemoryHierarchy::cacheModules[i-1];
+		}
 	}
 }
 
@@ -84,8 +88,15 @@ std::string MemoryHierarchy::StatisticsOutput()
 		currentLineIdentifier += 6;
 	}
 
+	unsigned int totalMemoryTraffic = 0;
+	if (MemoryHierarchy::cacheModules.size() > 0)
+	{
+		auto lastStats = MemoryHierarchy::cacheModules.back()->statistics;
+		totalMemoryTraffic = lastStats.readMisses + lastStats.writeMisses + lastStats.writeBacks + lastStats.writePropagations;
+	}
+
 	// Print total memory traffic for simulation
-	ss << currentLineIdentifier++ << ". total memory traffic:      " << 0 << std::endl;
+	ss << currentLineIdentifier++ << ". total memory traffic:      " << totalMemoryTraffic << std::endl;
 
 	str.append(ss.str());
 	ss.str("");

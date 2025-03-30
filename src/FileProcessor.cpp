@@ -27,7 +27,6 @@ Instruction FileProcessor::Next()
         std::cerr << "Error: File failed to open.\n";
     }
 
-
     std::string str;
     if (std::getline(stream, str) && !str.empty())
     {
@@ -49,8 +48,6 @@ Instruction FileProcessor::Next()
 
     return {
         .address = address,
-        .operation = op,
-        .internallyCreated = false,
-        .cyclesUntilReuse = REUSE_NOT_APPLICABLE,
+        .operation = op
     };
 }

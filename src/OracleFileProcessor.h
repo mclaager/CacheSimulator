@@ -14,15 +14,18 @@ class OracleFileProcessor : public IFileProcessor
 private:
     std::ifstream stream;
     unsigned int instructionCounter;
+    unsigned int blockSize;
     std::unordered_map<Address, std::list<unsigned int>> reuseIdxs;
     OracleFileProcessor();
 
     // Find reuse distances for each instruction
     void PreProcessTrace();
 
+    Block ToBlock(Address address);
+
     void DebugPrintOracleMemory();
 public:
-    OracleFileProcessor(const std::string& file);
+    OracleFileProcessor(const std::string& file, unsigned int blockSize);
 
     // Reached the end of the file
     bool Finished() override;
@@ -30,7 +33,8 @@ public:
     // Grab the next instruction
     Instruction Next() override;
 
-    unsigned int GetReuseDistance(Address address);
+    // Get the trace index where the block is next used
+    unsigned int GetNextUsedTraceIndex(Block block);
 };
 
 #endif

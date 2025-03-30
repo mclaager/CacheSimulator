@@ -18,6 +18,7 @@ private:
 	// Perform the write-back operation for a block of data in the cache, if applicable
 	void PerformWriteBack(SetIndex set, AssociativityIndex associativityIdx, Instruction originalInstruction);
 
+	Block ToBlock(Address address);
 	Tag ToTag(Address address);
 
 public:

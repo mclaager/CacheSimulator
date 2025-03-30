@@ -2,7 +2,7 @@
 
 #include "OracleFileProcessor.h"
 
-OracleFileProcessor::OracleFileProcessor(const std::string& file) : IFileProcessor(file), stream(file)
+OracleFileProcessor::OracleFileProcessor(const std::string& file, unsigned int blockSize) : IFileProcessor(file), stream(file), blockSize(blockSize)
 {
     if (!stream)
     {
@@ -21,8 +21,9 @@ void OracleFileProcessor::PreProcessTrace()
         std::cerr << "Error: File failed to open.\n";
     }
 
-    unsigned int addressIdx = 0;
+    unsigned int traceIdx = 0;
     Address address = 0;
+    Block block = 0;
     std::string str;
     while (!Finished())
     {
@@ -33,12 +34,14 @@ void OracleFileProcessor::PreProcessTrace()
                 if (str.size() > 2)
                     address = std::stoul(str.substr(2), nullptr, 16);
                 
+                block = ToBlock(address);
+                
                 // First appearance of address
-                if (reuseIdxs.count(address) == 0)
-                    reuseIdxs[address] = std::list<unsigned int>({ addressIdx });
+                if (reuseIdxs.count(block) == 0)
+                    reuseIdxs[block] = std::list<unsigned int>({ traceIdx });
                 // Subsequent appearances
                 else
-                    reuseIdxs[address].push_back(addressIdx);
+                    reuseIdxs[block].push_back(traceIdx);
             }
             catch (const std::exception& e)
             {
@@ -46,7 +49,7 @@ void OracleFileProcessor::PreProcessTrace()
             }
         }
 
-        addressIdx++;
+        traceIdx++;
     }
 
     // DebugPrintOracleMemory();
@@ -68,6 +71,7 @@ Instruction OracleFileProcessor::Next()
     Instruction retrn;
     MemoryOperation op = None;
     Address address = 0;
+    Block block = 0;
 
     if (!stream.is_open())
     {
@@ -87,10 +91,12 @@ Instruction OracleFileProcessor::Next()
             if (str.size() > 2)
                 address = std::stoul(str.substr(2), nullptr, 16);
             
-            if (reuseIdxs.count(address) == 0)
+            block = ToBlock(address);
+            
+            if (reuseIdxs.count(block) == 0)
                 throw;
             
-            reuseIdxs[address].pop_front();
+            reuseIdxs[block].pop_front();
             
         }
         catch (const std::exception& e)
@@ -103,9 +109,7 @@ Instruction OracleFileProcessor::Next()
     {
         .address = address,
         .operation = op,
-        .internallyCreated = false,
-        .cyclesUntilReuse = GetReuseDistance(address),
-        .get_reuse_distance = [&](Address address){ return OracleFileProcessor::GetReuseDistance(address); }
+        .get_next_used_idx = [&](Address address){ return OracleFileProcessor::GetNextUsedTraceIndex(address); }
     };
 
     instructionCounter++;
@@ -116,18 +120,19 @@ Instruction OracleFileProcessor::Next()
     return retrn;
 }
 
-unsigned int OracleFileProcessor::GetReuseDistance(Address address)
+unsigned int OracleFileProcessor::GetNextUsedTraceIndex(Address address)
 {
-    unsigned int reuseIdx = 0;
-
-    if (reuseIdxs[address].size() == 0)
-        reuseIdx = NEVER_REUSED;
+    Block block = ToBlock(address);
+    
+    if (reuseIdxs[block].size() == 0)
+        return NEVER_REUSED;
     else
-        reuseIdx = reuseIdxs[address].front();
+        return reuseIdxs[block].front();
+}
 
-    return reuseIdx == NEVER_REUSED ?
-        NEVER_REUSED :
-        reuseIdx - OracleFileProcessor::instructionCounter;
+Block OracleFileProcessor::ToBlock(Address address)
+{
+    return address / OracleFileProcessor::blockSize;
 }
 
 void OracleFileProcessor::DebugPrintOracleMemory()

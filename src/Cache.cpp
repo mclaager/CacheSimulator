@@ -38,11 +38,8 @@ CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, SetIndex set,
 
 	switch (Cache::replacement)
 	{
-		case ReplacementPolicy::FIFO:
-		case ReplacementPolicy::LRU:
-			break;
 		case ReplacementPolicy::OPTIMAL:
-			Cache::replacementData[set][associativityIdx] = instruction.cyclesUntilReuse;
+			Cache::replacementData[set][associativityIdx] = instruction.get_next_used_idx(instruction.address);
 			break;
 	}
 
@@ -122,7 +119,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 							break;
 					}
 				}
-				Cache::replacementData[set][replacementIdx] = instruction.cyclesUntilReuse;
+				Cache::replacementData[set][replacementIdx] = instruction.get_next_used_idx(instruction.address);
 				break;
 		}	
 	}
@@ -188,26 +185,6 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 					Cache::replacementData[set][associativityIdx]++;
 			}
 			break;
-		case ReplacementPolicy::OPTIMAL:
-			// Only update for iterations done on the actualy trace file (where distances have changed)
-			if (instruction.internallyCreated)
-				break;
-
-			for (set = 0; set < Cache::numSets; set++)
-			{
-				// std::cout << "Data: ";
-				// for (i = 0; i < Cache::associativity; i++)
-				// {
-				// 	std::cout << Cache::replacementData[set][i] << " ";
-				// }
-				// std::cout << std::endl;
-				for (associativityIdx = 0; associativityIdx < Cache::associativity; associativityIdx++)
-				{
-					if (Cache::replacementData[set][associativityIdx] != NEVER_REUSED)
-						Cache::replacementData[set][associativityIdx]--;
-				}
-			}
-			break;
 	}
 
 	// std::cout << Cache::ToString() << std::endl;
@@ -218,6 +195,11 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 SetIndex Cache::GetSet(Address address)
 {
 	return (address / Cache::blockSize) % Cache::numSets;
+}
+
+Block Cache::ToBlock(Address address)
+{
+	return address / Cache::blockSize;
 }
 
 Tag Cache::ToTag(Address address)
@@ -231,19 +213,11 @@ void Cache::PerformWriteBack(SetIndex set, AssociativityIndex associativityIdx, 
 
 	if (next)
 	{
-		unsigned int reuseCycles;
-		if (Cache::replacement == ReplacementPolicy::OPTIMAL)
-			reuseCycles = originalInstruction.get_reuse_distance(Cache::memory[set][associativityIdx].originalAddress);
-		else
-			reuseCycles = NEVER_REUSED;
-
 		Instruction writeBackInstruction = 
 		{
 			.address = Cache::memory[set][associativityIdx].originalAddress,
 			.operation = MemoryOperation::Write,
-			.internallyCreated = true,
-			.cyclesUntilReuse = reuseCycles,
-			.get_reuse_distance = originalInstruction.get_reuse_distance
+			.get_next_used_idx = originalInstruction.get_next_used_idx
 		};
 
 		next->ProcessRequest(writeBackInstruction);

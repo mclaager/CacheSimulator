@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 	Instruction next;
 	if (replacementPolicy == ReplacementPolicy::OPTIMAL)
 	{
-		OracleFileProcessor oracleProcessor = OracleFileProcessor(traceFile);
+		OracleFileProcessor oracleProcessor = OracleFileProcessor(traceFile, blockSize);
 		while (!oracleProcessor.Finished())
 		{
 			next = oracleProcessor.Next();

@@ -34,7 +34,7 @@ public:
     Instruction Next() override;
 
     // Get the trace index where the block is next used
-    unsigned int GetNextUsedTraceIndex(Block block);
+    unsigned int GetNextUsedTraceIndex(Address address);
 };
 
 #endif

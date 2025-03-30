@@ -3,15 +3,13 @@
 
 #include "Instruction.h"
 
-typedef unsigned int Tag;
-
 // The data and metadata held at each "cell" within a cache module
 struct CacheLine
 {
     // The smaller representation of the address to determine placement in the 
     Tag tag = 0;
 
-    // required for inclusive memory hierarchy
+    // A reference to what the original address that was stored here was. Most usedul for inclusive policy
     Address originalAddress = 0;
 
     bool isOccupied = false;

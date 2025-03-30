@@ -30,7 +30,7 @@ Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy repla
 	
 }
 
-CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, unsigned int set, unsigned int associativityIdx)
+CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, SetIndex set, AssociativityIndex associativityIdx)
 {
 	// Set the dirty bit flag for a cache hit (Write-back policy)
 	if (instruction.operation == MemoryOperation::Write)
@@ -46,7 +46,7 @@ CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, unsigned int 
 			break;
 	}
 
-	// cache data at set[index] would be returned for a real cache
+	// block data at set[index] would be returned for a real cache
 	CacheRequestOutput output =
 	{
 		.status = CacheHit,
@@ -55,7 +55,7 @@ CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, unsigned int 
 	return output;
 }
 
-CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int set)
+CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set)
 {
 	int i;
 
@@ -70,7 +70,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 			break;
 	}
 
-	unsigned int replacementIdx = 0;
+	AssociativityIndex replacementIdx = 0;
 
 	// Check if cache has unoccupied slots (if so, use the first one)
 	for (i = 0; i < Cache::associativity; i++)
@@ -127,7 +127,9 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 		}	
 	}
 
-	PerformWriteBack(set, replacementIdx, instruction.operation);
+	// Write-back the soon-to-be evicted block
+	if (Cache::memory[set][replacementIdx].isDirty)
+		PerformWriteBack(set, replacementIdx, instruction);
 
 	// Replaces the cache tag with new tag
 	bool isReplacingAddress = Cache::memory[set][replacementIdx].isOccupied;
@@ -136,6 +138,9 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 	Cache::memory[set][replacementIdx].originalAddress = instruction.address;
 	Cache::memory[set][replacementIdx].tag = Cache::ToTag(instruction.address);
 	Cache::memory[set][replacementIdx].isOccupied = true;
+
+	// Update the dirty bit to the appropriate state
+	Cache::memory[set][replacementIdx].isDirty = instruction.operation == MemoryOperation::Write;
 
 	CacheRequestOutput output =
 	{
@@ -148,7 +153,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, unsigned int
 CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 {
 	// Determine the set the instruction belongs to
-	unsigned int set = GetSet(instruction.address);
+	SetIndex set = GetSet(instruction.address);
 
 	bool isHit = false;
 
@@ -184,6 +189,10 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 			}
 			break;
 		case ReplacementPolicy::OPTIMAL:
+			// Only update for iterations done on the actualy trace file (where distances have changed)
+			if (instruction.internallyCreated)
+				break;
+
 			for (set = 0; set < Cache::numSets; set++)
 			{
 				// std::cout << "Data: ";
@@ -206,7 +215,7 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 	return output;
 }
 
-unsigned int Cache::GetSet(Address address)
+SetIndex Cache::GetSet(Address address)
 {
 	return (address / Cache::blockSize) % Cache::numSets;
 }
@@ -216,14 +225,29 @@ Tag Cache::ToTag(Address address)
 	return address / (Cache::blockSize * Cache::numSets);
 }
 
-void Cache::PerformWriteBack(unsigned int set, unsigned int associativityIdx, MemoryOperation operation)
+void Cache::PerformWriteBack(SetIndex set, AssociativityIndex associativityIdx, Instruction originalInstruction)
 {
-	// Perform the "write"
-	if (Cache::memory[set][associativityIdx].isDirty)
-		Cache::statistics.writes++;
+	Cache::statistics.writes++;
 
-	// Update the dirty bit to the appropriate state
-	Cache::memory[set][associativityIdx].isDirty = operation == MemoryOperation::Write;
+	if (next)
+	{
+		unsigned int reuseCycles;
+		if (Cache::replacement == ReplacementPolicy::OPTIMAL)
+			reuseCycles = originalInstruction.get_reuse_distance(Cache::memory[set][associativityIdx].originalAddress);
+		else
+			reuseCycles = NEVER_REUSED;
+
+		Instruction writeBackInstruction = 
+		{
+			.address = Cache::memory[set][associativityIdx].originalAddress,
+			.operation = MemoryOperation::Write,
+			.internallyCreated = true,
+			.cyclesUntilReuse = reuseCycles,
+			.get_reuse_distance = originalInstruction.get_reuse_distance
+		};
+
+		next->ProcessRequest(writeBackInstruction);
+	}
 }
 
 std::string Cache::ToString()
@@ -236,8 +260,8 @@ std::string Cache::ToString()
 	ss.str("");
 	ss.clear();
 
-	unsigned int set;
-	unsigned int associativityIdx;
+	SetIndex set;
+	AssociativityIndex associativityIdx;
 	for (set = 0; set < Cache::numSets; set++)
 	{
 		std::string numStr = std::to_string(set) + ":";
@@ -263,7 +287,7 @@ std::string Cache::ToString()
 void Cache::Evict(Address address)
 {
 	// Determine the set the instruction belongs to
-	unsigned int set = GetSet(address);
+	SetIndex set = GetSet(address);
 
 	int i;
 	for (i = 0; i < Cache::associativity; i++)

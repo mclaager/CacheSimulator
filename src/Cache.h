@@ -10,13 +10,13 @@
 class Cache : public ICache
 {
 private:
-	CacheRequestOutput ProcessCacheHit(Instruction instruction, unsigned int set, unsigned int associativityIdx);
-	CacheRequestOutput ProcessCacheMiss(Instruction instruction, unsigned int set);
+	CacheRequestOutput ProcessCacheHit(Instruction instruction, SetIndex set, AssociativityIndex associativityIdx);
+	CacheRequestOutput ProcessCacheMiss(Instruction instruction, SetIndex set);
 
 	// Get the cache set for an address
-	unsigned int GetSet(Address address);
+	SetIndex GetSet(Address address);
 	// Perform the write-back operation for a block of data in the cache, if applicable
-	void PerformWriteBack(unsigned int set, unsigned int associativityIdx, MemoryOperation operation);
+	void PerformWriteBack(SetIndex set, AssociativityIndex associativityIdx, Instruction originalInstruction);
 
 	Tag ToTag(Address address);
 

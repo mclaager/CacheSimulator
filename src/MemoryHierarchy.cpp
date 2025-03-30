@@ -6,28 +6,37 @@ MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModul
 	for (int i = 0; i < cacheModules.size(); i++)
 	{
 		MemoryHierarchy::cacheModules.push_back(cacheModules[i]);
+		if (i > 0)
+			MemoryHierarchy::cacheModules[i-1]->next = MemoryHierarchy::cacheModules[i];
 	}
 }
 
 bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 {
+	// Make a copy to allow for potential updates
+	Instruction instructionCopy = instruction;
+
 	int i;
 	for (i = 0; i < cacheModules.size(); i++)
 	{
-		CacheRequestOutput output = cacheModules[i].get()->ProcessRequest(instruction);
+		CacheRequestOutput output = cacheModules[i]->ProcessRequest(instructionCopy);
+
 		// If cache hit, no need to process other caches
 		if(output.status == CacheHit)
 		{
 			return true;
 		}
-		// Otherwise, for inclusive caches, evict all evicted address from previous cache modules
+		// If an eviction occured for inclusive caches, remove all other instances of the block from upper levels of hierarchy
 		else if (i > 0 && MemoryHierarchy::isInclusive && output.status == CacheMissEviction)
 		{
 			for (int j = i - 1; j > -1; j--)
 			{
-				cacheModules[j].get()->Evict(output.address);
+				cacheModules[j]->Evict(output.address);
 			}
 		}
+
+		// Writes to lower cache levels should be reads in normal circumstances, even if L1 was a write (because of write-back)
+		instructionCopy.operation = MemoryOperation::Read;
 	}
 	return false;
 }
@@ -40,7 +49,7 @@ std::string MemoryHierarchy::ToString()
 	int i;
 	for (i = 0; i < cacheModules.size(); i++)
 	{
-		str.append(cacheModules[i].get()->ToString());
+		str.append(cacheModules[i]->ToString());
 	}
 
 	return str;

@@ -19,7 +19,6 @@ bool FileProcessor::Finished()
 // Grab the next instruction
 Instruction FileProcessor::Next()
 {
-    Instruction retrn;
     MemoryOperation op = None;
     Address address = 0;
 
@@ -48,10 +47,10 @@ Instruction FileProcessor::Next()
         }
     }
 
-    retrn = Instruction();
-    retrn.address = address;
-    retrn.operation = op;
-    retrn.cyclesUntilReuse = REUSE_NOT_APPLICABLE;
-
-    return retrn;
+    return {
+        .address = address,
+        .operation = op,
+        .internallyCreated = false,
+        .cyclesUntilReuse = REUSE_NOT_APPLICABLE,
+    };
 }

@@ -29,6 +29,8 @@ public:
 
     // Grab the next instruction
     Instruction Next() override;
+
+    unsigned int GetReuseDistance(Address address);
 };
 
 #endif

@@ -6,10 +6,12 @@
 #include "types/CacheRequestOutput.h"
 
 #include <string>
+#include <memory>
 
 class ICache
 {
 public:
+    std::shared_ptr<ICache> next;
     CacheStatistics statistics;
     std::string name;
 

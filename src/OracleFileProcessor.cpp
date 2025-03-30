@@ -68,7 +68,6 @@ Instruction OracleFileProcessor::Next()
     Instruction retrn;
     MemoryOperation op = None;
     Address address = 0;
-    unsigned int reuseIdx = 0;
 
     if (!stream.is_open())
     {
@@ -92,10 +91,6 @@ Instruction OracleFileProcessor::Next()
                 throw;
             
             reuseIdxs[address].pop_front();
-            if (reuseIdxs[address].size() == 0)
-                reuseIdx = NEVER_REUSED;
-            else
-                reuseIdx = reuseIdxs[address].front();
             
         }
         catch (const std::exception& e)
@@ -104,12 +99,14 @@ Instruction OracleFileProcessor::Next()
         }
     }
 
-    retrn = Instruction();
-    retrn.address = address;
-    retrn.operation = op;
-    retrn.cyclesUntilReuse = reuseIdx == NEVER_REUSED ?
-        NEVER_REUSED :
-        reuseIdx - OracleFileProcessor::instructionCounter;
+    retrn = 
+    {
+        .address = address,
+        .operation = op,
+        .internallyCreated = false,
+        .cyclesUntilReuse = GetReuseDistance(address),
+        .get_reuse_distance = [&](Address address){ return OracleFileProcessor::GetReuseDistance(address); }
+    };
 
     instructionCounter++;
 
@@ -117,6 +114,20 @@ Instruction OracleFileProcessor::Next()
     // std::cout << "Cycles Until Reuse: " << retrn.cyclesUntilReuse << std::endl;
 
     return retrn;
+}
+
+unsigned int OracleFileProcessor::GetReuseDistance(Address address)
+{
+    unsigned int reuseIdx = 0;
+
+    if (reuseIdxs[address].size() == 0)
+        reuseIdx = NEVER_REUSED;
+    else
+        reuseIdx = reuseIdxs[address].front();
+
+    return reuseIdx == NEVER_REUSED ?
+        NEVER_REUSED :
+        reuseIdx - OracleFileProcessor::instructionCounter;
 }
 
 void OracleFileProcessor::DebugPrintOracleMemory()

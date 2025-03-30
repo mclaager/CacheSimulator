@@ -3,13 +3,15 @@
 
 struct CacheStatistics
 {
-    int reads;
-    int readMisses;
+    unsigned int reads = 0;
+    unsigned int readMisses = 0;
 
-    int writes;
-    int writeMisses;
+    unsigned int writes = 0;
+    unsigned int writeMisses = 0;
 
     // Cache miss rate = (readMisses + writeMisses) / (reads + writes)
+
+    unsigned int writeBacks = 0;
 };
 
 #endif

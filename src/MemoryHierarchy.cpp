@@ -1,5 +1,8 @@
 #include "MemoryHierarchy.h"
 
+#include <sstream>
+#include <cmath>
+
 MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive) :
 	isInclusive(isInclusive)
 {
@@ -51,6 +54,42 @@ std::string MemoryHierarchy::ToString()
 	{
 		str.append(cacheModules[i]->ToString());
 	}
+
+	return str;
+}
+
+std::string MemoryHierarchy::StatisticsOutput()
+{
+	std::string str = "===== Simulation results (raw) =====\n";
+
+	std::stringstream ss;
+
+	char currentLineIdentifier = 'a';
+	for (auto cache : MemoryHierarchy::cacheModules)
+	{
+		str += cache->StatisticsOutput(currentLineIdentifier);
+		currentLineIdentifier += 6;
+	}
+
+	// Pad with default L2 output if L2 doesn't exist
+	if (MemoryHierarchy::cacheModules.size() == 1)
+	{
+		str += "g. number of L2 reads:        0\n";
+		str += "h. number of L2 read misses:  0\n";
+		str += "i. number of L2 writes:       0\n";
+		str += "j. number of L2 write misses: 0\n";
+		str += "k. L2 miss rate:              0\n";
+		str += "l. number of L2 writebacks:   0\n";
+
+		currentLineIdentifier += 6;
+	}
+
+	// Print total memory traffic for simulation
+	ss << currentLineIdentifier++ << ". total memory traffic:      " << 0 << std::endl;
+
+	str.append(ss.str());
+	ss.str("");
+	ss.clear();
 
 	return str;
 }

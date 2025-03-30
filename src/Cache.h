@@ -38,6 +38,7 @@ public:
 	void Evict(Address address) override;
 
 	std::string ToString() override;
+	std::string StatisticsOutput(char startingLineIdentifier) override;
 };
 
 #endif

@@ -21,6 +21,7 @@ public:
     virtual void Evict(Address address) = 0;
 
     virtual std::string ToString() = 0;
+    virtual std::string StatisticsOutput(char startingLineIdentifier) = 0;
 };
 
 #endif

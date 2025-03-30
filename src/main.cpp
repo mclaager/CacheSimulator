@@ -124,5 +124,5 @@ int main(int argc, char** argv)
 		}
 	}
 
-	std::cout << mh.ToString();
+	std::cout << mh.ToString() << mh.StatisticsOutput();
 }

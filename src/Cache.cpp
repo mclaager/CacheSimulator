@@ -2,8 +2,8 @@
 
 #include <iomanip>
 #include <sstream>
-
 #include <iostream>
+#include <cmath>
 
 Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, std::string name)
 	: size(size), associativity(associativity), blockSize(blockSize),
@@ -149,6 +149,13 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 
 CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 {
+	// Update statistics
+	switch (instruction.operation)
+	{
+		case MemoryOperation::Read: Cache::statistics.reads++; break;
+		case MemoryOperation::Write: Cache::statistics.writes++; break;
+	}
+
 	// Determine the set the instruction belongs to
 	SetIndex set = GetSet(instruction.address);
 
@@ -209,8 +216,10 @@ Tag Cache::ToTag(Address address)
 
 void Cache::PerformWriteBack(SetIndex set, AssociativityIndex associativityIdx, Instruction originalInstruction)
 {
-	Cache::statistics.writes++;
+	// Update statistics
+	Cache::statistics.writeBacks++;
 
+	// Send a write to the next lower level of the cache
 	if (next)
 	{
 		Instruction writeBackInstruction = 
@@ -254,6 +263,30 @@ std::string Cache::ToString()
 		}
 		str.append("\n");
 	}
+
+	return str;
+}
+
+std::string Cache::StatisticsOutput(char startingLineIdentifier = 'a')
+{
+	std::string str = "";
+	std::stringstream ss;
+	
+	char currentLineIdentifier = startingLineIdentifier;
+
+	ss << currentLineIdentifier++ << ". number of " << Cache::name << " reads:        " << Cache::statistics.reads << std::endl;
+	ss << currentLineIdentifier++ << ". number of " << Cache::name << " read misses:  " << Cache::statistics.readMisses << std::endl;
+	ss << currentLineIdentifier++ << ". number of " << Cache::name << " writes:       " << Cache::statistics.writes << std::endl;
+	ss << currentLineIdentifier++ << ". number of " << Cache::name << " write misses: " << Cache::statistics.writeMisses << std::endl;
+
+	double missRate = (double)(Cache::statistics.readMisses + Cache::statistics.writeMisses) / (double)(Cache::statistics.reads + Cache::statistics.writes);
+	ss << currentLineIdentifier++ << ". " << Cache::name << " miss rate:              " << missRate << std::endl;
+
+	ss << currentLineIdentifier++ << ". number of " << Cache::name << " writebacks:   " << Cache::statistics.writeBacks << std::endl;
+
+	str.append(ss.str());
+	ss.str("");
+	ss.clear();
 
 	return str;
 }

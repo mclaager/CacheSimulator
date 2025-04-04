@@ -23,6 +23,11 @@ Graph::~Graph() {
     nodes.clear();
 }
 
+bool Graph::IsValid()
+{
+    return Graph::graphQueue->maxSize > 0;
+}
+
 void Graph::AddNode(Address address) {
     if (nodes.find(address) == nodes.end()) {
         // Handle queue full condition

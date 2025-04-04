@@ -3,8 +3,8 @@
 #include <sstream>
 #include <cmath>
 
-MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive, GraphLimitingQueue* queue) :
-	isInclusive(isInclusive), prefetchGraph(queue)
+MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive, GraphLimitingQueue* queue, unsigned int blockSize) :
+	isInclusive(isInclusive), prefetchGraph(queue), blockSize(blockSize)
 {
 	MemoryHierarchy::totalPredictions = 0;
 	MemoryHierarchy::uniqueCorrectPredictionsL1 = 0;
@@ -63,7 +63,7 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOutput output)
 {
 	// If queue was never set, don't perform prefetching.
-	if (prefetchGraph.graphQueue->maxSize <= 0)
+	if (!prefetchGraph.IsValid())
 		return;
 	
 	MemoryHierarchy::totalPredictions++;
@@ -75,7 +75,7 @@ void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOu
 	{
 		
 		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
-		if (MemoryHierarchy::previousFetch == instruction.address)
+		if ((MemoryHierarchy::previousFetch & ~(MemoryHierarchy::blockSize -1)) == (instruction.address & ~(MemoryHierarchy::blockSize -1)))
 		{
 			if (output.status == CacheHit)
 			{
@@ -167,7 +167,7 @@ std::string MemoryHierarchy::StatisticsOutput()
 	ss.clear();
 
 	// If no prefetching, return these statistics
-	if (prefetchGraph.graphQueue->maxSize <= 0)
+	if (!prefetchGraph.IsValid())
 		return str;
 
 	str += "===== Prefetching results (raw) =====\n";

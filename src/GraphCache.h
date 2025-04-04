@@ -55,6 +55,7 @@ class Graph {
 public:
     Graph(GraphLimitingQueue* queue);
     ~Graph();
+    bool IsValid();
     void AddNode(Address address);
     void RemoveNode(Address address);
     void HandleCorrectPrediction(Address lastAddress, Address correctAddress);

@@ -1,7 +1,7 @@
 # Compiler
 CC = g++
-CFLAGS = -g -fsanitize=address -static-libasan -fno-omit-frame-pointer -Wall -Wextra -Wpedantic
-LDFLAGS = -fsanitize=address -static-libasan
+#CFLAGS = -g -fsanitize=address -static-libasan -fno-omit-frame-pointer -Wall -Wextra -Wpedantic
+#LDFLAGS = -fsanitize=address -static-libasan
 
 # Target Executable
 TARGET = sim_cache

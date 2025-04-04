@@ -18,6 +18,7 @@ public:
     Graph prefetchGraph;
 	bool didFetch;
 	Address lastAddress, previousFetch;
+    unsigned int blockSize; // Prefetching works on blocks
 
     // Statistics for prefetching
     unsigned int totalPredictions;
@@ -26,7 +27,7 @@ public:
     unsigned int uniqueCorrectPredictionsL2;
     unsigned int sharedCorrectPredictionsL2;
 
-    MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive, GraphLimitingQueue* queue);
+    MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive, GraphLimitingQueue* queue, unsigned int blockSize);
 
     std::string ToString();
 

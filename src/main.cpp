@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <memory>
 
+
 #include "FileProcessor.h"
 #include "OracleFileProcessor.h"
 #include "Cache.h"
@@ -92,12 +93,14 @@ int main(int argc, char** argv)
 		isInclusive,
 		traceFile);
 
+	GraphLimitingQueue queue = GraphLimitingQueue(1e4);
+
 	// Create the memory hierarchy
 	std::vector<std::shared_ptr<ICache>> caches;
-	caches.push_back(std::make_shared<Cache>(Cache(l1_size, l1_assoc, blockSize, replacementPolicy, "L1")));
+	caches.push_back(std::make_shared<Cache>(Cache(l1_size, l1_assoc, blockSize, replacementPolicy, &queue, "L1")));
 	if (l2_size != 0)
 	{
-		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, "L2")));
+		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, &queue, "L2")));
 	}
 	MemoryHierarchy mh = MemoryHierarchy(caches, isInclusive == 1);
 
@@ -125,4 +128,5 @@ int main(int argc, char** argv)
 	}
 
 	std::cout << mh.ToString() << mh.StatisticsOutput();
+	std::cout << std::dec <<mh.cacheModules[0].get()->correctPredictions<<std::endl;
 }

@@ -1,19 +1,22 @@
 #include "Cache.h"
 
+
+
 #include <iomanip>
 #include <sstream>
 #include <iostream>
 #include <cmath>
 
-Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, std::string name)
+Cache::Cache(int size, int associativity, int blockSize, ReplacementPolicy replacement, GraphLimitingQueue* queue, std::string name)
 	: size(size), associativity(associativity), blockSize(blockSize),
-	replacement(replacement)
+	replacement(replacement), prefetchGraph(queue)
 {
 	Cache::name = name;
 
 	Cache::numSets = size / (associativity * blockSize);
 
 	Cache::memory.resize(numSets, std::vector<CacheLine>(associativity));
+	ICache::correctPredictions = 0;
 
 	switch (Cache::replacement)
 	{
@@ -152,6 +155,9 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 
 CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 {
+	// Try to add the currently accessed address
+	prefetchGraph.AddNode(instruction.address);
+
 	// Update statistics
 	switch (instruction.operation)
 	{
@@ -163,6 +169,35 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 	SetIndex set = GetSet(instruction.address);
 
 	bool isHit = false;
+	
+	if (Cache::didFetch)
+	{
+		
+		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
+		if (Cache::previousFetch == instruction.address)
+		{
+			
+			ICache::correctPredictions++;
+			std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
+			//std::cout<<"predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+			prefetchGraph.HandleCorrectPrediction(Cache::lastAddress, Cache::previousFetch);
+		}
+		else
+		{
+			//if(ICache::correctPredictions>13158)
+				std::cout<<"given: "<<std::hex<<Cache::lastAddress<<" incorrect predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+			//std::cout<<"calling Handle incorrect prediction"<<std::endl;
+			prefetchGraph.HandleIncorrectPrediction(Cache::lastAddress, Cache::previousFetch);
+		}
+	}
+
+	Address fetchedAddress = prefetchGraph.PrefetchAddress(instruction.address);
+	Cache::didFetch = fetchedAddress != __UINT32_MAX__;
+	if (Cache::didFetch)
+	{
+		Cache::previousFetch = fetchedAddress;
+		Cache::lastAddress = instruction.address;
+	}
 
 	int i;
 	for (i = 0; i < Cache::associativity; i++)
@@ -174,6 +209,7 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 			break;
 		}
 	}
+	
 
 	CacheRequestOutput output = isHit ?
 		Cache::ProcessCacheHit(instruction, set, i) :

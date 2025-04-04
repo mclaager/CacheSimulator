@@ -27,6 +27,7 @@ public:
 	bool didFetch;
 	Address lastAddress, previousFetch;
 
+	unsigned int correctPredictions;
 	int size, associativity, blockSize;
 	int numSets;
 	//u_int32_t correctPredictions;

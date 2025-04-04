@@ -25,7 +25,7 @@ Instruction FileProcessor::Next()
 
     if (!stream.is_open())
     {
-        std::cerr << "Error: File failed to open.\n";
+        throw std::ios_base::failure("File not found: nonexistent.txt");
     }
 
 

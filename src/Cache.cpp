@@ -154,20 +154,25 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 	
 	if (Cache::didFetch)
 	{
+
+		std::cout<<"Blocksize: "<<Cache::blockSize<<std::endl;
 		
 		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
-		if (Cache::previousFetch == instruction.address)
+		if (
+			// in same block
+			(Cache::previousFetch & ~(Cache::blockSize -1)) == (instruction.address & ~(Cache::blockSize -1))
+
+		)
 		{
-			
 			ICache::correctPredictions++;
-			std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
+			//std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
 			//std::cout<<"predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
 			prefetchGraph.HandleCorrectPrediction(Cache::lastAddress, Cache::previousFetch);
 		}
 		else
 		{
 			//if(ICache::correctPredictions>13158)
-				std::cout<<"given: "<<std::hex<<Cache::lastAddress<<" incorrect predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+				//std::cout<<"given: "<<std::hex<<Cache::lastAddress<<" incorrect predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
 			//std::cout<<"calling Handle incorrect prediction"<<std::endl;
 			prefetchGraph.HandleIncorrectPrediction(Cache::lastAddress, Cache::previousFetch);
 		}

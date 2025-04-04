@@ -1,6 +1,6 @@
 #include "GraphCache.h"
 
-Node::Node(Address addr) : address(addr) {}
+Node::Node(Block addr) : block(addr) {}
 
 void Node::AddEdge(std::shared_ptr<Edge> edge) {
     edges.push_back(edge);
@@ -28,19 +28,19 @@ bool Graph::IsValid()
     return Graph::graphQueue->maxSize > 0;
 }
 
-void Graph::AddNode(Address address) {
-    if (nodes.find(address) == nodes.end()) {
+void Graph::AddNode(Block Block) {
+    if (nodes.find(Block) == nodes.end()) {
         // Handle queue full condition
         if (graphQueue->GetCurrentSize() >= graphQueue->maxSize) {
             std::shared_ptr<Node> tail = graphQueue->GetTail();
             if (tail) {
-                RemoveNode(tail->address);
+                RemoveNode(tail->block);
             }
         }
 
         // Create and add new node
-        auto newNode = std::make_shared<Node>(address);
-        nodes[address] = newNode;
+        auto newNode = std::make_shared<Node>(Block);
+        nodes[Block] = newNode;
         graphQueue->Add(newNode);
 
         // Add edge to previous node if not first node
@@ -51,32 +51,32 @@ void Graph::AddNode(Address address) {
             newNode->AddEdge(newEdge);
         }
     } else {
-        graphQueue->Promote(address);
+        graphQueue->Promote(Block);
     }
 }
 
-void Graph::RemoveNode(Address address) {
-    auto it = nodes.find(address);
+void Graph::RemoveNode(Block Block) {
+    auto it = nodes.find(Block);
     if (it != nodes.end()) {
         // Remove all edges pointing to this node
         it->second->ClearEdges();
         
         // Remove from queue
-        graphQueue->Remove(address);
+        graphQueue->Remove(Block);
         
         // Remove from graph
         nodes.erase(it);
     }
 }
 
-void Graph::HandleCorrectPrediction(Address lastAddress, Address correctAddress) {
-    auto it = nodes.find(lastAddress);
+void Graph::HandleCorrectPrediction(Block lastBlock, Block correctBlock) {
+    auto it = nodes.find(lastBlock);
     if (it != nodes.end()) {
         auto lastNode = it->second;
 
         for (auto& edge : lastNode->edges) {
             if (auto toNode = edge->to.lock()) {
-                if (toNode->address == correctAddress) {
+                if (toNode->block == correctBlock) {
                     edge->weight += 3;
                     return;
                 }
@@ -84,13 +84,13 @@ void Graph::HandleCorrectPrediction(Address lastAddress, Address correctAddress)
         }
         throw std::runtime_error("Prediction error: Expected edge does not exist!");
     }
-    throw std::runtime_error("Prediction error: Last address node not found!");
+    throw std::runtime_error("Prediction error: Last Block node not found!");
 }
 
-void Graph::HandleIncorrectPrediction(Address lastAddress, Address incorrectAddress) 
+void Graph::HandleIncorrectPrediction(Block lastBlock, Block incorrectBlock) 
 {
-    auto it = nodes.find(lastAddress);
-    auto incIt = nodes.find(incorrectAddress);
+    auto it = nodes.find(lastBlock);
+    auto incIt = nodes.find(incorrectBlock);
 
     if (it != nodes.end() && incIt != nodes.end()) 
     {
@@ -99,7 +99,7 @@ void Graph::HandleIncorrectPrediction(Address lastAddress, Address incorrectAddr
 
         for (auto e = lastNode->edges.begin(); e != lastNode->edges.end();) {
             if (auto toNode = (*e)->to.lock()) {
-                if (toNode->address == incorrectAddress) {
+                if (toNode->block == incorrectBlock) {
                     (*e)->weight--;
                     if ((*e)->weight <= 0) {
                         e = lastNode->edges.erase(e);
@@ -111,22 +111,22 @@ void Graph::HandleIncorrectPrediction(Address lastAddress, Address incorrectAddr
         }
 
         if (wrongNode->edges.empty()) {
-            RemoveNode(incorrectAddress);
+            RemoveNode(incorrectBlock);
         }
     }
 }
 
-unsigned int Graph::getRelationship(Address currentAddress, Address victimAddress)
+unsigned int Graph::getRelationship(Block currentBlock, Block victimBlock)
 {
-    auto currentNode = graphQueue->GetNode(currentAddress);
-    auto victimNode = graphQueue->GetNode(victimAddress);
+    auto currentNode = graphQueue->GetNode(currentBlock);
+    auto victimNode = graphQueue->GetNode(victimBlock);
 
 
     for(auto e = currentNode->edges.begin(); e != currentNode->edges.end();)
     {
         if(auto subject = (*e)->to.lock())
         {
-            if (subject->address == victimAddress)
+            if (subject->block == victimBlock)
                 return (*e)->weight;
         }
     }
@@ -135,20 +135,20 @@ unsigned int Graph::getRelationship(Address currentAddress, Address victimAddres
 
 }
 
-Address Graph::PrefetchAddress(Address currentAddress) {
-    auto currentNode = graphQueue->GetNode(currentAddress);
+Block Graph::PrefetchBlock(Block currentBlock) {
+    auto currentNode = graphQueue->GetNode(currentBlock);
     if (!currentNode || currentNode->edges.empty()) {
         return -1;
     }
 
     int maxWeight = 0;
-    Address prefetchAddr = -1;
+    Block prefetchAddr = -1;
     
     for (const auto& edge : currentNode->edges) {
         if (auto toNode = edge->to.lock()) {
             if (edge->weight > maxWeight) {
                 maxWeight = edge->weight;
-                prefetchAddr = toNode->address;
+                prefetchAddr = toNode->block;
             }
         }
     }
@@ -159,23 +159,23 @@ Address Graph::PrefetchAddress(Address currentAddress) {
 GraphLimitingQueue::GraphLimitingQueue(int size) : maxSize(size) {}
 
 void GraphLimitingQueue::Add(std::shared_ptr<Node> node) {
-    if (nodeMap.find(node->address) != nodeMap.end()) {
-        Promote(node->address);
+    if (nodeMap.find(node->block) != nodeMap.end()) {
+        Promote(node->block);
     } else {
         queue.push_front(node);
-        nodeMap[node->address] = queue.begin();
+        nodeMap[node->block] = queue.begin();
     }
 }
 
-void GraphLimitingQueue::Promote(Address address) {
-    auto it = nodeMap.find(address);
+void GraphLimitingQueue::Promote(Block Block) {
+    auto it = nodeMap.find(Block);
     if (it != nodeMap.end()) {
         queue.splice(queue.begin(), queue, it->second);
     }
 }
 
-void GraphLimitingQueue::Remove(Address address) {
-    auto it = nodeMap.find(address);
+void GraphLimitingQueue::Remove(Block Block) {
+    auto it = nodeMap.find(Block);
     if (it != nodeMap.end()) {
         queue.erase(it->second);
         nodeMap.erase(it);
@@ -186,8 +186,8 @@ unsigned int GraphLimitingQueue::GetCurrentSize() {
     return queue.size();
 }
 
-std::shared_ptr<Node> GraphLimitingQueue::GetNode(Address currentAddress) {
-    auto it = nodeMap.find(currentAddress);
+std::shared_ptr<Node> GraphLimitingQueue::GetNode(Block currentBlock) {
+    auto it = nodeMap.find(currentBlock);
     if (it != nodeMap.end()) {
         return it->second->lock();
     }
@@ -212,7 +212,7 @@ void GraphLimitingQueue::PrintQueue() {
     std::cout << "Queue: " << std::endl;
     for (auto& weakNode : queue) {
         if (auto node = weakNode.lock()) {
-            std::cout << std::hex << node->address << std::dec << std::endl;
+            std::cout << std::hex << node->block << std::dec << std::endl;
         }
     }
 }

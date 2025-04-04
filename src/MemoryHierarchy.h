@@ -10,6 +10,8 @@
 
 class MemoryHierarchy
 {
+private:
+    Block ToBlock(Address address);
 public:
     std::vector<std::shared_ptr<ICache>> cacheModules;
     bool isInclusive;
@@ -17,7 +19,7 @@ public:
     // Prefetching related variables
     Graph prefetchGraph;
 	bool didFetch;
-	Address lastAddress, previousFetch;
+	Block lastBlock, previousFetch;
     unsigned int blockSize; // Prefetching works on blocks
 
     // Statistics for prefetching

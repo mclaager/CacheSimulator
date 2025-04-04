@@ -69,13 +69,13 @@ void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOu
 	MemoryHierarchy::totalPredictions++;
 
 	// Try to add the currently accessed address
-	prefetchGraph.AddNode(instruction.address);
+	prefetchGraph.AddNode(MemoryHierarchy::ToBlock(instruction.address));
 
 	if (MemoryHierarchy::didFetch)
 	{
 		
 		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
-		if ((MemoryHierarchy::previousFetch & ~(MemoryHierarchy::blockSize -1)) == (instruction.address & ~(MemoryHierarchy::blockSize -1)))
+		if (previousFetch == MemoryHierarchy::ToBlock(instruction.address))
 		{
 			if (output.status == CacheHit)
 			{
@@ -93,23 +93,28 @@ void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOu
 			}
 			//std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
 			//std::cout<<"predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
-			prefetchGraph.HandleCorrectPrediction(MemoryHierarchy::lastAddress, MemoryHierarchy::previousFetch);
+			prefetchGraph.HandleCorrectPrediction(MemoryHierarchy::lastBlock, MemoryHierarchy::previousFetch);
 		}
 		else
 		{
 			//std::cout<<"given: "<<std::hex<<Cache::lastAddress<<" incorrect predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
 			//std::cout<<"calling Handle incorrect prediction"<<std::endl;
-			prefetchGraph.HandleIncorrectPrediction(MemoryHierarchy::lastAddress, MemoryHierarchy::previousFetch);
+			prefetchGraph.HandleIncorrectPrediction(MemoryHierarchy::lastBlock, MemoryHierarchy::previousFetch);
 		}
 	}
 
-	Address fetchedAddress = prefetchGraph.PrefetchAddress(instruction.address);
-	MemoryHierarchy::didFetch = fetchedAddress != __UINT32_MAX__;
+	Block fetchedBlock = prefetchGraph.PrefetchBlock(MemoryHierarchy::ToBlock(instruction.address));
+	MemoryHierarchy::didFetch = fetchedBlock != __UINT32_MAX__;
 	if (MemoryHierarchy::didFetch)
 	{
-		MemoryHierarchy::previousFetch = fetchedAddress;
-		MemoryHierarchy::lastAddress = instruction.address;
+		MemoryHierarchy::previousFetch = fetchedBlock;
+		MemoryHierarchy::lastBlock = MemoryHierarchy::ToBlock(instruction.address);
 	}
+}
+
+Block MemoryHierarchy::ToBlock(Address address)
+{
+	return (address & ~(MemoryHierarchy::blockSize -1));
 }
 
 

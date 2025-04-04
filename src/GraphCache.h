@@ -1,14 +1,14 @@
 #ifndef GRAPHCACHE_H
 #define GRAPHCACHE_H
 
+#include "types/CacheLine.h"
+
 #include <memory>
 #include <unordered_map>
 #include <list>
 #include <vector>
 #include <stdexcept>
 #include <iostream>
-
-typedef unsigned int Address;
 
 class Edge;
 class Node;
@@ -17,10 +17,10 @@ class GraphLimitingQueue {
 public:
     GraphLimitingQueue(int size);
     void Add(std::shared_ptr<Node> node);
-    void Promote(Address address);
-    void Remove(Address address);
+    void Promote(Block block);
+    void Remove(Block block);
     unsigned int GetCurrentSize();
-    std::shared_ptr<Node> GetNode(Address currentAddress);
+    std::shared_ptr<Node> GetNode(Block currentBlock);
     std::shared_ptr<Node> GetTail();
     std::shared_ptr<Node> GetHead();
     void PrintQueue();
@@ -29,16 +29,16 @@ public:
 
 private:
     std::list<std::weak_ptr<Node>> queue;
-    std::unordered_map<Address, std::list<std::weak_ptr<Node>>::iterator> nodeMap;
+    std::unordered_map<Block, std::list<std::weak_ptr<Node>>::iterator> nodeMap;
 };
 
 class Node {
 public:
-    Node(Address addr);
+    Node(Block block);
     void AddEdge(std::shared_ptr<Edge> edge);
     void ClearEdges();
     
-    Address address;
+    Block block;
     std::vector<std::shared_ptr<Edge>> edges;
 };
 
@@ -56,15 +56,15 @@ public:
     Graph(GraphLimitingQueue* queue);
     ~Graph();
     bool IsValid();
-    void AddNode(Address address);
-    void RemoveNode(Address address);
-    void HandleCorrectPrediction(Address lastAddress, Address correctAddress);
-    void HandleIncorrectPrediction(Address lastAddress, Address incorrectAddress);
-    unsigned int getRelationship(Address currentAddress, Address victimAddress);
-    Address PrefetchAddress(Address currentAddress);
+    void AddNode(Block block);
+    void RemoveNode(Block block);
+    void HandleCorrectPrediction(Block lastBlock, Block correctBlock);
+    void HandleIncorrectPrediction(Block lastBlock, Block incorrectBlock);
+    unsigned int getRelationship(Block currentBlock, Block victimBlock);
+    Block PrefetchBlock(Block currentBlock);
 
 private:
-    std::unordered_map<Address, std::shared_ptr<Node>> nodes;
+    std::unordered_map<Block, std::shared_ptr<Node>> nodes;
     GraphLimitingQueue* graphQueue;
 };
 

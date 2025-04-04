@@ -2,6 +2,7 @@
 #define CACHESTATUS_H
 
 #include "Instruction.h"
+#include <string>
 
 // Descriptors giving an overview of the success for a cache request
 enum CacheStatus

@@ -3,9 +3,15 @@
 #include <sstream>
 #include <cmath>
 
-MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive) :
-	isInclusive(isInclusive)
+MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive, GraphLimitingQueue* queue) :
+	isInclusive(isInclusive), prefetchGraph(queue)
 {
+	MemoryHierarchy::totalPredictions = 0;
+	MemoryHierarchy::uniqueCorrectPredictionsL1 = 0;
+	MemoryHierarchy::sharedCorrectPredictionsL1 = 0;
+	MemoryHierarchy::uniqueCorrectPredictionsL2 = 0;
+	MemoryHierarchy::sharedCorrectPredictionsL2 = 0;
+
 	for (int i = 0; i < cacheModules.size(); i++)
 	{
 		cacheModules[i]->isInclusive = isInclusive;
@@ -24,13 +30,16 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 	Instruction instructionCopy = instruction;
 
 	int i;
+	CacheRequestOutput output;
 	for (i = 0; i < cacheModules.size(); i++)
 	{
-		CacheRequestOutput output = cacheModules[i]->ProcessRequest(instructionCopy);
+		output = cacheModules[i]->ProcessRequest(instructionCopy);
 
 		// If cache hit, no need to process other caches
 		if(output.status == CacheHit)
 		{
+			// Perform the "prefetching" after to compare outputs for statistics
+			PerformPrefetching(instructionCopy, output);
 			return true;
 		}
 		// If an eviction occured for inclusive caches, remove all other instances of the block from upper levels of hierarchy
@@ -45,7 +54,62 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 		// Writes to lower cache levels should be reads in normal circumstances, even if L1 was a write (because of write-back)
 		instructionCopy.operation = MemoryOperation::Read;
 	}
+
+	// Perform the "prefetching" after to compare outputs for statistics
+	PerformPrefetching(instructionCopy, output);
 	return false;
+}
+
+void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOutput output)
+{
+	// If queue was never set, don't perform prefetching.
+	if (prefetchGraph.graphQueue->maxSize <= 0)
+		return;
+	
+	MemoryHierarchy::totalPredictions++;
+
+	// Try to add the currently accessed address
+	prefetchGraph.AddNode(instruction.address);
+
+	if (MemoryHierarchy::didFetch)
+	{
+		
+		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
+		if (MemoryHierarchy::previousFetch == instruction.address)
+		{
+			if (output.status == CacheHit)
+			{
+				if (output.sender == "L1")
+					MemoryHierarchy::sharedCorrectPredictionsL1++;
+				else if (output.sender == "L2")
+					MemoryHierarchy::sharedCorrectPredictionsL2++;
+			}
+			else
+			{
+				if (output.sender == "L1")
+					MemoryHierarchy::uniqueCorrectPredictionsL1++;
+				else if (output.sender == "L2")
+					MemoryHierarchy::uniqueCorrectPredictionsL2++;
+			}
+			//std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
+			//std::cout<<"predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+			prefetchGraph.HandleCorrectPrediction(MemoryHierarchy::lastAddress, MemoryHierarchy::previousFetch);
+		}
+		else
+		{
+			//std::cout<<"given: "<<std::hex<<Cache::lastAddress<<" incorrect predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
+			//std::cout<<"calling Handle incorrect prediction"<<std::endl;
+			prefetchGraph.HandleIncorrectPrediction(MemoryHierarchy::lastAddress, MemoryHierarchy::previousFetch);
+		}
+	}
+
+	Address fetchedAddress = prefetchGraph.PrefetchAddress(instruction.address);
+	MemoryHierarchy::didFetch = fetchedAddress != __UINT32_MAX__;
+	if (MemoryHierarchy::didFetch)
+	{
+		MemoryHierarchy::previousFetch = fetchedAddress;
+		MemoryHierarchy::lastAddress = instruction.address;
+	}
 }
 
 
@@ -97,6 +161,22 @@ std::string MemoryHierarchy::StatisticsOutput()
 
 	// Print total memory traffic for simulation
 	ss << currentLineIdentifier++ << ". total memory traffic:      " << totalMemoryTraffic << std::endl;
+
+	str.append(ss.str());
+	ss.str("");
+	ss.clear();
+
+	// If no prefetching, return these statistics
+	if (prefetchGraph.graphQueue->maxSize <= 0)
+		return str;
+
+	str += "===== Prefetching results (raw) =====\n";
+
+	ss << "a. total predictions:                          " << MemoryHierarchy::totalPredictions << std::endl;
+	ss << "b. total unique correct predictions on L1:     " << MemoryHierarchy::uniqueCorrectPredictionsL1 << std::endl;
+	ss << "c. total non-unique correct predictions on L1: " << MemoryHierarchy::sharedCorrectPredictionsL1 << std::endl;
+	ss << "d. total unique correct predictions on L2:     " << MemoryHierarchy::uniqueCorrectPredictionsL2 << std::endl;
+	ss << "e. total non-unique correct predictions on L2: " << MemoryHierarchy::sharedCorrectPredictionsL2 << std::endl;
 
 	str.append(ss.str());
 	ss.str("");

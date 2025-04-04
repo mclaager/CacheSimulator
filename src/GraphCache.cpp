@@ -15,13 +15,8 @@ Edge::Edge(int _weight, std::shared_ptr<Node> _from, std::shared_ptr<Node> _to) 
 Graph::Graph(GraphLimitingQueue* queue) : graphQueue(queue) {}
 void Graph::AddNode(Address address)
 {
-    
     // First, add the node to the graph
     if (nodes.find(address) == nodes.end()) {
-        if(address==0x40e180a0)
-           // std::cout<<"adding That Address"<<std::endl;
-
-
         // if queue full remove tail address from queue, and its refrence in graph and map
         if (graphQueue->GetCurrentSize() >= graphQueue->maxSize)
         {
@@ -249,22 +244,8 @@ void GraphLimitingQueue::Promote(Address address)
 
 void GraphLimitingQueue::Remove(Address address)
 {
-    std::cout<<" "<<std::endl;
-    // if(address == 0x40e180a0)
-    // {
     int count = 0;
-        for (auto kvp : queue)
-        {
-            if(kvp->address == 0x40e180a0)
-            {
-                std::cout <<"found: " << std::hex << kvp->address << std::dec << std::endl;
-                count++;
-            }
-        }
-
-        std::cout<<"count: " << count << std::endl;
-    // }
-    std::cout<<"To Remove: " << std::hex<<address<<std::endl;
+    
     if (nodeMap.find(address) == nodeMap.end())
     {
         throw std::out_of_range("Node to remove not found in queue");

@@ -6,6 +6,7 @@
 #include <string>
 
 #include "ICache.h"
+#include "GraphCache.h"
 
 class MemoryHierarchy
 {
@@ -13,7 +14,19 @@ public:
     std::vector<std::shared_ptr<ICache>> cacheModules;
     bool isInclusive;
 
-    MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive);
+    // Prefetching related variables
+    Graph prefetchGraph;
+	bool didFetch;
+	Address lastAddress, previousFetch;
+
+    // Statistics for prefetching
+    unsigned int totalPredictions;
+    unsigned int uniqueCorrectPredictionsL1;
+    unsigned int sharedCorrectPredictionsL1;
+    unsigned int uniqueCorrectPredictionsL2;
+    unsigned int sharedCorrectPredictionsL2;
+
+    MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModules, bool isInclusive, GraphLimitingQueue* queue);
 
     std::string ToString();
 
@@ -21,6 +34,9 @@ public:
 
     // Processes the instruction on each level of the hierarchy. Returns true if cache hit, otherwise false.
     bool ProcessRequest(Instruction instruction);
+
+    // Perform all prefetching checks and operations
+    void PerformPrefetching(Instruction instruction, CacheRequestOutput output);
 };
 
 #endif

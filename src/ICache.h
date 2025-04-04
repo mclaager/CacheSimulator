@@ -16,7 +16,6 @@ public:
     std::shared_ptr<ICache> next;
     CacheStatistics statistics;
     std::string name;
-    unsigned int correctPredictions;
 
     bool isInclusive;
 

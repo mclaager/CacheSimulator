@@ -20,6 +20,9 @@ struct CacheRequestOutput
     // A memory address that may need to be known the memory hierarchy
     // (i.e. on cache miss with eviction)
     Address address;
+
+    // The name of the cache module that created this output
+    std::string sender = "";
 };
 
 

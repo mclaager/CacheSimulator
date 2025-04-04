@@ -40,37 +40,37 @@ void PrintSimulatorConfiguration(int blockSize,
 	std::cout << "trace_file:            " << base_filename << std::endl;
 }
 
-/// <summary>
 /// The simulator accepts 8 Command Line args, the following are:
-/// BLOCKSIZE: Positive integer. Block size in bytes. (Same block size for all 
-/// 	caches in the memory hierarchy.) 
+/// BLOCKSIZE: Positive integer. Block size in bytes. (Same block size for all caches in the memory hierarchy.) 
 /// L1_SIZE: Positive integer. L1 cache size in bytes. 
 /// L1_ASSOC: Positive integer. L1 set-associa vity (1 is direct-mapped). 
-/// L2_SIZE: Positive integer. L2 cache size in bytes. L2_SIZE = 0 signifies 
-/// 	that there is no L2 cache. 
+/// L2_SIZE: Positive integer. L2 cache size in bytes. L2_SIZE = 0 signifies that there is no L2 cache. 
 /// L2_ASSOC: Positive integer. L2 set-associa vity (1 is direct-mapped). 
-/// REPLACEMENT_POLICY: Posi ve integer. 0 for LRU, 1 for FIFO, 2 
-/// 	for opmal. 
+/// REPLACEMENT_POLICY: Posi ve integer. 0 for LRU, 1 for FIFO, 2 for opmal. 
 /// INCLUSION_PROPERTY: Positive integer. 0 for non-inclusive, 1 for inclusive. 
-/// trace_file: Character string. Full name of trace file including any extensions. 
-/// </summary>
+/// trace_file: Character string. Full name of trace file including any extensions.
+/// 
+/// The simulator also accepts additional arguments for using prefetching, the following are:
+/// GRAPHQUEUESIZE: The amount of nodes to allow in the graph queue. default: 0 (unused)
 int main(int argc, char** argv)
 {
 	int blockSize,
 		l1_size, l1_assoc,
 		l2_size, l2_assoc, isInclusive;
 
+	int graphQueueSize = 0;
+
 	ReplacementPolicy replacementPolicy;
 
 	std::string traceFile;
 
-	if (argc < 8)
+	if (argc < 9)
 	{
 		std::cerr << "Error: Not enough arguments." << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	// Read in command line arguments
+	// Read in basic command line arguments
 	blockSize = atoi(argv[1]);
 	l1_size = atoi(argv[2]);
 	l1_assoc = atoi(argv[3]);
@@ -79,6 +79,12 @@ int main(int argc, char** argv)
 	replacementPolicy = (ReplacementPolicy) atoi(argv[6]);
 	isInclusive = atoi(argv[7]);
 	traceFile = argv[8];
+
+	// Read in graph-based prefetching arguments
+	if (argc > 9)
+	{
+		graphQueueSize = atoi(argv[9]);
+	}
 
 	if (blockSize == 0 || l1_assoc == 0 || (l2_size > 0 && l2_assoc == 0))
 	{
@@ -93,16 +99,16 @@ int main(int argc, char** argv)
 		isInclusive,
 		traceFile);
 
-	GraphLimitingQueue queue = GraphLimitingQueue(1e4);
+	GraphLimitingQueue queue = GraphLimitingQueue(graphQueueSize);
 
 	// Create the memory hierarchy
 	std::vector<std::shared_ptr<ICache>> caches;
-	caches.push_back(std::make_shared<Cache>(Cache(l1_size, l1_assoc, blockSize, replacementPolicy, &queue, "L1")));
+	caches.push_back(std::make_shared<Cache>(Cache(l1_size, l1_assoc, blockSize, replacementPolicy, "L1")));
 	if (l2_size != 0)
 	{
-		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, &queue, "L2")));
+		caches.push_back(std::make_shared<Cache>(Cache(l2_size, l2_assoc, blockSize, replacementPolicy, "L2")));
 	}
-	MemoryHierarchy mh = MemoryHierarchy(caches, isInclusive == 1);
+	MemoryHierarchy mh = MemoryHierarchy(caches, isInclusive == 1, &queue);
 
 	// Load the file and run the simulated cache
 	Instruction next;
@@ -128,5 +134,4 @@ int main(int argc, char** argv)
 	}
 
 	std::cout << mh.ToString() << mh.StatisticsOutput();
-	std::cout << std::dec <<mh.cacheModules[0].get()->correctPredictions<<std::endl;
 }

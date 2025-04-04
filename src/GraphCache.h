@@ -1,77 +1,70 @@
 #ifndef GRAPHCACHE_H
 #define GRAPHCACHE_H
 
-#include "ICache.h"
-#include "types/CacheLine.h"
-
-#include <vector>
 #include <memory>
-#include <map>
 #include <unordered_map>
 #include <list>
+#include <vector>
+#include <stdexcept>
 #include <iostream>
-#include <algorithm>
 
+typedef unsigned int Address;
 
 class Edge;
 class Node;
-class GraphLimitingQueue;
 
-class Node
-{
+class GraphLimitingQueue {
 public:
-Address address;
-    std::vector<std::shared_ptr<Edge>> edges; // Adjacency list
-
-    Node(Address addr);
-    void AddEdge(std::shared_ptr<Edge> edge);
-};
-
-class Edge
-{
-public:
-    int weight;
-    std::shared_ptr<Node> from;
-    std::shared_ptr<Node> to;
-
-    Edge(int _weight, std::shared_ptr<Node> _from, std::shared_ptr<Node> _to);
-};
-
-class Graph
-{
-    std::map<Address, std::shared_ptr<Node>> nodes; // Node storage
-
-public:
-    GraphLimitingQueue* graphQueue;  // Reference to the queue
-
-    Graph(GraphLimitingQueue* queue);  // Constructor declaration
-
-    void AddNode(Address address);
-    void RemoveNode(Address address);
-
-    void HandleCorrectPrediction(Address lastAddress, Address thisAddress);
-    void HandleIncorrectPrediction(Address lastAddress, Address incorrectAddress);
-    Address PrefetchAddress(Address currentAddress);
-};
-
-class GraphLimitingQueue
-{
-private:
-    std::list<Node*> queue;
-    std::unordered_map<Address, std::list<Node*>::iterator> nodeMap;
-
-public:
-    int maxSize;
     GraphLimitingQueue(int size);
-    
-    unsigned int GetCurrentSize();
-    void Add(Node* node);
+    void Add(std::shared_ptr<Node> node);
     void Promote(Address address);
     void Remove(Address address);
-	void PrintQueue();
-    Node* GetNode(Address currentAddress);
-    Node* GetTail();
-	std::shared_ptr<Node> GetHead();
+    unsigned int GetCurrentSize();
+    std::shared_ptr<Node> GetNode(Address currentAddress);
+    std::shared_ptr<Node> GetTail();
+    std::shared_ptr<Node> GetHead();
+    void PrintQueue();
+
+    int maxSize;
+
+private:
+    std::list<std::weak_ptr<Node>> queue;
+    std::unordered_map<Address, std::list<std::weak_ptr<Node>>::iterator> nodeMap;
+};
+
+class Node {
+public:
+    Node(Address addr);
+    void AddEdge(std::shared_ptr<Edge> edge);
+    void ClearEdges();
+    
+    Address address;
+    std::vector<std::shared_ptr<Edge>> edges;
+};
+
+class Edge {
+public:
+    Edge(int weight, std::weak_ptr<Node> from, std::weak_ptr<Node> to);
+    
+    int weight;
+    std::weak_ptr<Node> from;
+    std::weak_ptr<Node> to;
+};
+
+class Graph {
+public:
+    Graph(GraphLimitingQueue* queue);
+    ~Graph();
+    void AddNode(Address address);
+    void RemoveNode(Address address);
+    void HandleCorrectPrediction(Address lastAddress, Address correctAddress);
+    void HandleIncorrectPrediction(Address lastAddress, Address incorrectAddress);
+    unsigned int getRelationship(Address currentAddress, Address victimAddress);
+    Address PrefetchAddress(Address currentAddress);
+
+private:
+    std::unordered_map<Address, std::shared_ptr<Node>> nodes;
+    GraphLimitingQueue* graphQueue;
 };
 
 #endif // GRAPHCACHE_H

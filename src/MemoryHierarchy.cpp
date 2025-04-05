@@ -35,11 +35,30 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 	{
 		output = cacheModules[i]->ProcessRequest(instructionCopy);
 
+		if (previousFetch == MemoryHierarchy::ToBlock(instruction.address))
+		{
+			if (output.status == CacheHit)
+			{
+				if (output.sender == "L1")
+					MemoryHierarchy::sharedCorrectPredictionsL1++;
+				else if (output.sender == "L2")
+					MemoryHierarchy::sharedCorrectPredictionsL2++;
+			}
+			else
+			{
+				if (output.sender == "L1")
+					MemoryHierarchy::uniqueCorrectPredictionsL1++;
+				else if (output.sender == "L2")
+					MemoryHierarchy::uniqueCorrectPredictionsL2++;
+			}
+		}
+
+		if (i == 0 && output.status != CacheHit)
+			PerformPrefetching(instructionCopy, output);
+
 		// If cache hit, no need to process other caches
 		if(output.status == CacheHit)
 		{
-			// Perform the "prefetching" after to compare outputs for statistics
-			PerformPrefetching(instructionCopy, output);
 			return true;
 		}
 		// If an eviction occured for inclusive caches, remove all other instances of the block from upper levels of hierarchy
@@ -55,8 +74,6 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 		instructionCopy.operation = MemoryOperation::Read;
 	}
 
-	// Perform the "prefetching" after to compare outputs for statistics
-	PerformPrefetching(instructionCopy, output);
 	return false;
 }
 
@@ -77,20 +94,6 @@ void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOu
 		//std::cout << "Correct? " << (Cache::previousFetch == instruction.address) << std::endl;
 		if (previousFetch == MemoryHierarchy::ToBlock(instruction.address))
 		{
-			if (output.status == CacheHit)
-			{
-				if (output.sender == "L1")
-					MemoryHierarchy::sharedCorrectPredictionsL1++;
-				else if (output.sender == "L2")
-					MemoryHierarchy::sharedCorrectPredictionsL2++;
-			}
-			else
-			{
-				if (output.sender == "L1")
-					MemoryHierarchy::uniqueCorrectPredictionsL1++;
-				else if (output.sender == "L2")
-					MemoryHierarchy::uniqueCorrectPredictionsL2++;
-			}
 			//std::cout<<"Predicted Correctly: "<< std::dec<< ICache::correctPredictions <<std::endl;
 			//std::cout<<"predict: "<<std::hex<<previousFetch<<" actual: "<<std::hex<<instruction.address<<std::endl;
 			prefetchGraph.HandleCorrectPrediction(MemoryHierarchy::lastBlock, MemoryHierarchy::previousFetch);

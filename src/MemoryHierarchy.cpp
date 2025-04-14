@@ -12,6 +12,7 @@ MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModul
 	MemoryHierarchy::uniqueCorrectPredictionsL2 = 0;
 	MemoryHierarchy::sharedCorrectPredictionsL2 = 0;
 
+
 	for (int i = 0; i < cacheModules.size(); i++)
 	{
 		cacheModules[i]->isInclusive = isInclusive;
@@ -24,6 +25,8 @@ MemoryHierarchy::MemoryHierarchy(std::vector<std::shared_ptr<ICache>> cacheModul
 	}
 }
 
+int count = 1;
+
 bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 {
 	// Make a copy to allow for potential updates
@@ -32,10 +35,20 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 	int i;
 
 	
+
+	
 	CacheRequestOutput output;
 
 	PerformPrefetching(instructionCopy, output);
-	prefetchGraph.graphQueue->PrintQueue();
+	//prefetchGraph.graphQueue->PrintQueue();
+	Block validPrefetch = ToBlock(0);
+	if(count == 0 )
+	{
+		validPrefetch = previousFetch;
+	}
+
+
+	//prefetchGraph.graphQueue->PrintQueue();
 	
 	for (i = 0; i < cacheModules.size(); i++)
 	{
@@ -87,6 +100,8 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 
 	return false;
 }
+
+
 
 void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOutput output)
 {

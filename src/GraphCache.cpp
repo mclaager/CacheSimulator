@@ -23,6 +23,7 @@ Graph::~Graph() {
     nodes.clear();
 }
 
+
 bool Graph::IsValid()
 {
     return Graph::graphQueue->maxSize > 0;
@@ -145,14 +146,24 @@ Block Graph::PrefetchBlock(Block currentBlock) {
 
     int maxWeight = 0;
     Block prefetchAddr = -1;
-    
-    for (const auto& edge : currentNode->edges) {
-        if (auto toNode = edge->to.lock()) {
-            if (edge->weight > maxWeight) {
-                maxWeight = edge->weight;
-                prefetchAddr = toNode->block;
+
+    if (graphQueue->GetCurrentSize() < 25)
+        return prefetchAddr;
+    for(int i = 0; i < 25; i++){
+        for (const auto& edge : currentNode->edges) {
+            if (auto toNode = edge->to.lock()) {
+                if (edge->weight > maxWeight) {
+                    maxWeight = edge->weight;
+                    prefetchAddr = toNode->block;
+                }
             }
         }
+        // if (prefetchAddr == currentBlock)
+        //     break;
+        if(prefetchAddr == -1 )
+            break;
+        currentNode = graphQueue->GetNode(prefetchAddr);
+        maxWeight = 0;
     }
 
     return prefetchAddr;

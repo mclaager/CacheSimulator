@@ -184,11 +184,11 @@ std::string MemoryHierarchy::StatisticsOutput()
 
 	str += "===== Prefetching results (raw) =====\n";
 
-	ss << "a. total predictions:                          " << MemoryHierarchy::totalPredictions << std::endl;
-	ss << "b. total unique correct predictions on L1:     " << MemoryHierarchy::uniqueCorrectPredictionsL1 << std::endl;
-	ss << "c. total non-unique correct predictions on L1: " << MemoryHierarchy::sharedCorrectPredictionsL1 << std::endl;
-	ss << "d. total unique correct predictions on L2:     " << MemoryHierarchy::uniqueCorrectPredictionsL2 << std::endl;
-	ss << "e. total non-unique correct predictions on L2: " << MemoryHierarchy::sharedCorrectPredictionsL2 << std::endl;
+	ss << "a. number of prefetcher update calls:    " << MemoryHierarchy::totalPredictions << std::endl;
+	ss << "b. unique correct predictions on L1:     " << MemoryHierarchy::uniqueCorrectPredictionsL1 << std::endl;
+	ss << "c. non-unique correct predictions on L1: " << MemoryHierarchy::sharedCorrectPredictionsL1 << std::endl;
+	ss << "d. unique correct predictions on L2:     " << MemoryHierarchy::uniqueCorrectPredictionsL2 << std::endl;
+	ss << "e. non-unique correct predictions on L2: " << MemoryHierarchy::sharedCorrectPredictionsL2 << std::endl;
 
 	str.append(ss.str());
 	ss.str("");

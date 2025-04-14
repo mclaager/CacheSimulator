@@ -377,3 +377,6 @@ data/.DS_Store
 src/.DS_Store
 src/MemoryHierarchy.cpp.save
 src/.FileProcessor.cpp.swp
+
+# Ignore trace files generate by tests
+**/results/*

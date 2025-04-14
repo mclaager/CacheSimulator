@@ -28,9 +28,15 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 {
 	// Make a copy to allow for potential updates
 	Instruction instructionCopy = instruction;
-
+	bool l1Miss = false;
 	int i;
+
+	
 	CacheRequestOutput output;
+
+	PerformPrefetching(instructionCopy, output);
+	prefetchGraph.graphQueue->PrintQueue();
+	
 	for (i = 0; i < cacheModules.size(); i++)
 	{
 		output = cacheModules[i]->ProcessRequest(instructionCopy);
@@ -47,14 +53,19 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 			else
 			{
 				if (output.sender == "L1")
+				{
 					MemoryHierarchy::uniqueCorrectPredictionsL1++;
+				}
 				else if (output.sender == "L2")
 					MemoryHierarchy::uniqueCorrectPredictionsL2++;
 			}
 		}
 
-		if (i == 0 && output.status != CacheHit)
-			PerformPrefetching(instructionCopy, output);
+		// if(i == 0 && output.status != CacheHit)
+		// 	l1Miss = true;
+
+		// if (i == (cacheModules.size() - 1) && l1Miss )
+		// 	PerformPrefetching(instructionCopy, output);
 
 		// If cache hit, no need to process other caches
 		if(output.status == CacheHit)

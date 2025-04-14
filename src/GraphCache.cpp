@@ -10,8 +10,8 @@ void Node::ClearEdges() {
     edges.clear();
 }
 
-Edge::Edge(int _weight, std::weak_ptr<Node> _from, std::weak_ptr<Node> _to) 
-    : weight(_weight), from(_from), to(_to) {}
+Edge::Edge(int _weight, int _wpc, std::weak_ptr<Node> _from, std::weak_ptr<Node> _to) 
+    : weight(_weight), wrongPredictionCout(_wpc), from(_from), to(_to) {}
 
 Graph::Graph(GraphLimitingQueue* queue) : graphQueue(queue) {}
 
@@ -46,7 +46,7 @@ void Graph::AddNode(Block Block) {
         // Add edge to previous node if not first node
         if (nodes.size() > 1) {
             std::shared_ptr<Node> lastNode = graphQueue->GetHead();
-            auto newEdge = std::make_shared<Edge>(10, lastNode, newNode);
+            auto newEdge = std::make_shared<Edge>(10, 1, lastNode, newNode);
             lastNode->AddEdge(newEdge);
             newNode->AddEdge(newEdge);
         }
@@ -77,7 +77,8 @@ void Graph::HandleCorrectPrediction(Block lastBlock, Block correctBlock) {
         for (auto& edge : lastNode->edges) {
             if (auto toNode = edge->to.lock()) {
                 if (toNode->block == correctBlock) {
-                    edge->weight += 3;
+                    edge->weight ++;
+                    edge->wrongPredictionCout = 1;
                     return;
                 }
             }
@@ -100,7 +101,8 @@ void Graph::HandleIncorrectPrediction(Block lastBlock, Block incorrectBlock)
         for (auto e = lastNode->edges.begin(); e != lastNode->edges.end();) {
             if (auto toNode = (*e)->to.lock()) {
                 if (toNode->block == incorrectBlock) {
-                    (*e)->weight--;
+                    (*e)->weight -= (*e)->wrongPredictionCout;
+                    (*e)->wrongPredictionCout *= 2;
                     if ((*e)->weight <= 0) {
                         e = lastNode->edges.erase(e);
                         continue;

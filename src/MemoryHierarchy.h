@@ -39,7 +39,7 @@ public:
     bool ProcessRequest(Instruction instruction);
 
     // Perform all prefetching checks and operations
-    void PerformPrefetching(Instruction instruction, CacheRequestOutput output);
+    void PerformPrefetching(Instruction instruction);
 };
 
 #endif

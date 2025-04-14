@@ -44,8 +44,9 @@ public:
 
 class Edge {
 public:
-    Edge(int weight, std::weak_ptr<Node> from, std::weak_ptr<Node> to);
+    Edge(int weight, int wrongPredictionCount, std::weak_ptr<Node> from, std::weak_ptr<Node> to);
     
+    int wrongPredictionCout;
     int weight;
     std::weak_ptr<Node> from;
     std::weak_ptr<Node> to;
@@ -62,10 +63,11 @@ public:
     void HandleIncorrectPrediction(Block lastBlock, Block incorrectBlock);
     unsigned int getRelationship(Block currentBlock, Block victimBlock);
     Block PrefetchBlock(Block currentBlock);
+    GraphLimitingQueue* graphQueue;
 
 private:
     std::unordered_map<Block, std::shared_ptr<Node>> nodes;
-    GraphLimitingQueue* graphQueue;
+    
 };
 
 #endif // GRAPHCACHE_H

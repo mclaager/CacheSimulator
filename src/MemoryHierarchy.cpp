@@ -31,6 +31,8 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 
 	bool l1Miss = false;
 
+	PerformPrefetching(instructionCopy);
+
 	int i;
 	CacheRequestOutput output;
 	for (i = 0; i < cacheModules.size(); i++)
@@ -55,10 +57,11 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 			}
 		}
 
-		if (i == 0 && output.status != CacheHit)
-			l1Miss = true;
-		if (i == cacheModules.size() - 1 && l1Miss)
-			PerformPrefetching(instructionCopy, output);
+		// // Perform prefetching only on L1 misses
+		// if(i == 0 && output.status != CacheHit)
+		// 	l1Miss = true;
+		// if (i == (cacheModules.size() - 1) && l1Miss)
+		// 	PerformPrefetching(instructionCopy, output);
 
 		// If cache hit, no need to process other caches
 		if(output.status == CacheHit)
@@ -81,7 +84,7 @@ bool MemoryHierarchy::ProcessRequest(Instruction instruction)
 	return false;
 }
 
-void MemoryHierarchy::PerformPrefetching(Instruction instruction, CacheRequestOutput output)
+void MemoryHierarchy::PerformPrefetching(Instruction instruction)
 {
 	// If queue was never set, don't perform prefetching.
 	if (!prefetchGraph.IsValid())

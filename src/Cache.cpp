@@ -1,7 +1,5 @@
 #include "Cache.h"
 
-
-
 #include <iomanip>
 #include <sstream>
 #include <iostream>
@@ -37,13 +35,6 @@ CacheRequestOutput Cache::ProcessCacheHit(Instruction instruction, SetIndex set,
 	if (instruction.operation == MemoryOperation::Write)
 		memory[set][associativityIdx].isDirty = true;
 
-	switch (Cache::replacement)
-	{
-		case ReplacementPolicy::OPTIMAL:
-			Cache::replacementData[set][associativityIdx] = instruction.get_next_used_idx(instruction.address);
-			break;
-	}
-
 	// block data at set[index] would be returned for a real cache
 	CacheRequestOutput output =
 	{
@@ -74,7 +65,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 	// Check if cache has unoccupied slots (if so, use the first one)
 	for (i = 0; i < Cache::associativity; i++)
 	{
-		if (!Cache::memory[set][i].isOccupied)
+		if (!Cache::memory[set][i].valid)
 		{
 			replacementIdx = i;
 			break;
@@ -88,7 +79,7 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 
 	unsigned int maxCyclesLastUsed, farthestBlockValue;
 	// If not, perform a replacement policy
-	if (Cache::memory[set][i].isOccupied)
+	if (Cache::memory[set][i].valid)
 	{
 		switch (Cache::replacement)
 		{
@@ -131,12 +122,12 @@ CacheRequestOutput Cache::ProcessCacheMiss(Instruction instruction, SetIndex set
 		PerformWriteBack(set, replacementIdx, instruction);
 
 	// Replaces the cache tag with new tag
-	bool isReplacingAddress = Cache::memory[set][replacementIdx].isOccupied;
+	bool isReplacingAddress = Cache::memory[set][replacementIdx].valid;
 	Address originalAddress = Cache::memory[set][replacementIdx].originalAddress;
 
 	Cache::memory[set][replacementIdx].originalAddress = instruction.address;
 	Cache::memory[set][replacementIdx].tag = Cache::ToTag(instruction.address);
-	Cache::memory[set][replacementIdx].isOccupied = true;
+	Cache::memory[set][replacementIdx].valid = true;
 
 	// Update the dirty bit to the appropriate state
 	Cache::memory[set][replacementIdx].isDirty = instruction.operation == MemoryOperation::Write;
@@ -171,7 +162,7 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 	for (i = 0; i < Cache::associativity; i++)
 	{
 		// Check if the current address block is hit
-		if (Cache::ToTag(instruction.address) == Cache::memory[set][i].tag)
+		if ((Cache::ToTag(instruction.address) == Cache::memory[set][i].tag) && Cache::memory[set][i].valid)
 		{
 			isHit = true;
 			break;
@@ -189,13 +180,23 @@ CacheRequestOutput Cache::ProcessRequest(Instruction instruction)
 		case ReplacementPolicy::LRU:
 			for (associativityIdx = 0; associativityIdx < Cache::associativity; associativityIdx++)
 			{
-				if (!Cache::memory[set][associativityIdx].isOccupied)
+				if (!Cache::memory[set][associativityIdx].valid)
 					continue;
 				
 				if (Cache::memory[set][associativityIdx].tag == Cache::ToTag(instruction.address))
 					Cache::replacementData[set][associativityIdx] = 0;
 				else
 					Cache::replacementData[set][associativityIdx]++;
+			}
+			break;
+		case ReplacementPolicy::OPTIMAL:
+			for (associativityIdx = 0; associativityIdx < Cache::associativity; associativityIdx++)
+			{
+				if (!Cache::memory[set][associativityIdx].valid)
+					continue;
+				
+				if (Cache::memory[set][associativityIdx].tag == Cache::ToTag(instruction.address))
+					Cache::replacementData[set][associativityIdx] = instruction.get_next_used_idx(instruction.address);
 			}
 			break;
 	}

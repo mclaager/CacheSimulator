@@ -12,7 +12,7 @@ struct CacheLine
     // A reference to what the original address that was stored here was. Most usedul for inclusive policy
     Address originalAddress = 0;
 
-    bool isOccupied = false;
+    bool valid = false;
     bool isDirty = false;
 };
 

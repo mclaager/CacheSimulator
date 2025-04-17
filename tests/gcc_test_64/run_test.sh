@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TRACE_FILE="../../data/traces/go_trace.txt"
+TRACE_FILE="../../data/traces/gcc_trace.txt"
 BLOCK_SIZE=64
 
 L1_SIZE=1024

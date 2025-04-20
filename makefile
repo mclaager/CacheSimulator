@@ -7,7 +7,7 @@ CC = g++
 TARGET = sim_cache
 
 # Source Code
-SOURCE = main.cpp FileProcessor.cpp Cache.cpp MemoryHierarchy.cpp OracleFileProcessor.cpp GraphCache.cpp
+SOURCE = src/main.cpp src/FileProcessor.cpp src/Cache.cpp src/MemoryHierarchy.cpp src/OracleFileProcessor.cpp src/GraphCache.cpp
 
 # Builds the executable with AddressSanitizer
 $(TARGET): $(SOURCE)

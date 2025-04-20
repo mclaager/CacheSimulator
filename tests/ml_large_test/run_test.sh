@@ -26,7 +26,7 @@ do
     L2A="${L2_ASSOCS[$i]}"
     OUTPUT_FILE="results/queue_${QUEUE}_l1assoc_${L1A}.txt"
     echo "Running with prefetcher queue size=$QUEUE and l1, l2 assoc=$L1A, $L2A..."
-    ../../src/sim_cache "$BLOCK_SIZE" "$L1_SIZE" "$L1A" "$L2_SIZE" "$L2A" 0 0 "$TRACE_FILE" "$QUEUE" > "$OUTPUT_FILE"
+    ../../sim_cache "$BLOCK_SIZE" "$L1_SIZE" "$L1A" "$L2_SIZE" "$L2A" 0 0 "$TRACE_FILE" "$QUEUE" > "$OUTPUT_FILE"
 
     # Extract values
     PREFETCHER_UPDATES=$(grep "a. number of prefetcher update calls:" "$OUTPUT_FILE" | awk '{print $7}')

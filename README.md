@@ -22,11 +22,10 @@ The cache simulator models a two-level cache hierarchy and supports multiple rep
 To build the simulator, ensure you're in the root directory and run:
 
 ```bash
-    cd src  
     make
 ```
 
-This will generate an executable named `sim_cache` in the `src` directory.
+This will generate an executable named `sim_cache` in the root directory.
 
 ## Running the Simulator
 

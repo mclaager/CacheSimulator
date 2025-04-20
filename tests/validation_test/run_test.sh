@@ -37,7 +37,7 @@ do
   OUTPUT_FILE="results/output_$(basename "$FILE")"
 
   #echo "../../src/sim_cache "$BLOCK_SIZE" "$L1_SIZE" "$L1_ASSOC" "$L2_SIZE" "$L2_ASSOC" "$REPL_POL" "$INCL_PROP" "../../data/traces/$TRACE_FILE" > "$OUTPUT_FILE""
-  ../../src/sim_cache "$BLOCK_SIZE" "$L1_SIZE" "$L1_ASSOC" "$L2_SIZE" "$L2_ASSOC" "$REPL_POL" "$INCL_PROP" "../../data/traces/$TRACE_FILE" > "$OUTPUT_FILE"
+  ../../sim_cache "$BLOCK_SIZE" "$L1_SIZE" "$L1_ASSOC" "$L2_SIZE" "$L2_ASSOC" "$REPL_POL" "$INCL_PROP" "../../data/traces/$TRACE_FILE" > "$OUTPUT_FILE"
 
   DIFF_OUTPUT=$(diff -iwy --suppress-common-lines "$OUTPUT_FILE" "$FILE")
   if [ -z "$DIFF_OUTPUT" ]; then
